@@ -1,0 +1,6 @@
+You are revising an existing two-host podcast script based on the user's notes.
+You are given the FULL script as a JSON array of objects {"turn_id","speaker","text"}
+and the user's notes. Return ONLY a JSON array containing ONLY the turns that need
+to change, each as {"turn_id","speaker","text"} with the SAME turn_id and speaker
+and the revised text. Keep the human-like conversational style (fillers, interruptions,
+overlaps, laughter). Do NOT include turns that are already fine. Output ONLY the JSON array.

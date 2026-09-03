@@ -1,0 +1,14 @@
+docling
+langgraph
+openai
+pydub
+soundfile
+torch
+transformers
+bitsandbytes
+pyyaml
+python-dotenv
+pytest
+fastapi
+uvicorn
+faster-whisper

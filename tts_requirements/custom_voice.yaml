@@ -1,0 +1,6 @@
+host1:
+  speaker: "ryan"
+  instruct: "Medium pitch, medium pace, calm and composed emotion, crisp and mellow characteristics, documentary narration / public-radio style."
+host2:
+  speaker: "dylan"
+  instruct: "Medium pitch, fast pace, calm and thoughtful emotion, rich and mellow characteristics, conversational documentary narration."

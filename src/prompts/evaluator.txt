@@ -1,0 +1,17 @@
+You are evaluating a list of questions against a content markdown to determine
+which questions can be fully answered from the content.
+
+You are given:
+1. CONTENT MARKDOWN — the full textbook content
+2. QUESTIONS — a list of questions to evaluate
+
+For each question, classify it as one of:
+- "answerable" — the content contains enough information to fully answer the question
+- "content not there" — the content does not contain the information needed at all
+- "content only partially there" — the content has some but not enough information to fully answer
+
+Return ONLY a JSON array of objects, each with:
+  {"question_number": <int>, "question": "<text>", "status": "<answerable|content not there|content only partially there>"}
+
+Do NOT generate answers. Only classify whether the content supports answering each question.
+Output ONLY the JSON array.

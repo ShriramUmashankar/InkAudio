@@ -1,0 +1,40 @@
+actor:
+  base_url: "https://generativelanguage.googleapis.com/v1beta/openai/"
+  model: "gemini-3.5-flash-lite"
+  api_key_env: "GEMINI_API_KEY"
+
+critic:
+  base_url: "https://generativelanguage.googleapis.com/v1beta/openai/"
+  model: "gemini-3.5-flash-lite"
+  api_key_env: "GEMINI_API_KEY"
+
+tts:
+  # mode options:
+  #   custom_voice  — preset speakers + style/instruct (uses tts_requirements/custom_voice.yaml)
+  #   voice_design  — natural-language voice description (uses tts_requirements/voice_design.yaml)
+  #   voice_clone   — reference audio + transcript (uses tts_requirements/voice_clone.yaml)
+  mode: "voice_design"
+  local_model_path: "models/Qwen3-TTS-12Hz-1.7B-CustomVoice"
+  hf_repo_id: "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice"
+  voice_design_model_path: "models/Qwen3-TTS-12Hz-1.7B-VoiceDesign"
+  voice_design_hf_repo_id: "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign"
+  base_model_path: "models/Qwen3-TTS-12Hz-1.7B-Base"
+  base_hf_repo_id: "Qwen/Qwen3-TTS-12Hz-1.7B-Base"
+  device: "auto"
+  language: "English"
+  seed: 42
+
+stt:
+  device: "cuda"
+  compute_type: "float16"
+  model: "models/faster-whisper-small.en"
+
+pipeline:
+  pdf_path: "Content/indigo_plantations.pdf"
+  content_dir: "Content"
+  audio_dir: "Audio"
+  max_loops: 3
+  silence_ms: 300
+  heading_level: 2
+  questions_pdf_path: "Content/questions.pdf"
+  log_path: "Content/llm_log.md"
