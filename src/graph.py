@@ -64,10 +64,10 @@ def build_graph(client: LLMClient, max_loops: int):
         }
 
     def critic(state: GraphState) -> Dict:
-        user = (
-            f"CONTENT:\n<<<\n{state['content_markdown']}\n>>>\n\n"
-            f"DRAFT:\n{json.dumps(state['draft'], ensure_ascii=False)}"
-        )
+        user = f"CONTENT:\n<<<\n{state['content_markdown']}\n>>>\n\n"
+        if state["questions_context"].strip():
+            user += f"ANSWERABLE QUESTIONS:\n<<<\n{state['questions_context']}\n>>>\n\n"
+        user += f"DRAFT:\n{json.dumps(state['draft'], ensure_ascii=False)}"
         raw = client.chat(CRITIC_SYSTEM_PROMPT, user, node_label="critic")
         parsed = extract_json(raw)
         if not isinstance(parsed, dict):

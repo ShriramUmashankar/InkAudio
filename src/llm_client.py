@@ -39,7 +39,7 @@ class LLMClient:
         if log_path:
             Path(log_path).parent.mkdir(parents=True, exist_ok=True)
 
-    def _log(self, node_label: str, user_prompt: str, response: str) -> None:
+    def _log(self, node_label: str, response: str) -> None:
         if not self._log_path:
             return
         self._call_count += 1
@@ -49,8 +49,7 @@ class LLMClient:
             if self._call_count == 1:
                 f.write("# LLM Log\n")
             f.write(f"\n---\n\n## Round {self._call_count} — {node_label}\n\n")
-            f.write(f"### Prompt\n\n{user_prompt}\n\n")
-            f.write(f"### Response\n\n{response}\n")
+            f.write(f"{response}\n")
 
     def chat(self, system_prompt: str, user_prompt: str, **kwargs: Any) -> str:
         node_label = kwargs.pop("node_label", "")
@@ -67,7 +66,7 @@ class LLMClient:
                     **kwargs,
                 )
                 result = resp.choices[0].message.content or ""
-                self._log(node_label, user_prompt, result)
+                self._log(node_label, result)
                 return result
             except Exception as e:  # noqa: BLE001 - retry on any SDK/network error
                 last_err = e

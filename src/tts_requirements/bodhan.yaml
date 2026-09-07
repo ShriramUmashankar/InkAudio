@@ -1,8 +1,8 @@
 host1:
   voice: "Amit"
   lang: "en"
-  style: "educational lecture"
+  style: ""
 host2:
   voice: "Kavya"
   lang: "en"
-  style: "educational lecture"
+  style: ""
