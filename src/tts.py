@@ -1,14 +1,21 @@
+import json
 import os
 import random
+import time
 import numpy as np
 from pathlib import Path
 from typing import Dict, List
 
+import requests
 import soundfile as sf
 import torch
 import yaml
 
 from .config import Settings
+
+_BODHAN_RPM = 3
+_BODHAN_MIN_INTERVAL = 60.0 / _BODHAN_RPM
+_last_bodhan_call = 0.0
 
 
 def set_determinism(seed: int):
@@ -24,6 +31,10 @@ def set_determinism(seed: int):
 
 
 def _load_model(settings: Settings):
+    mode = settings.tts.mode
+    if mode == "bodhan":
+        return None
+
     from qwen_tts import Qwen3TTSModel
     from transformers import BitsAndBytesConfig
 
@@ -71,6 +82,8 @@ def _load_template(settings: Settings) -> Dict:
         path = req_dir / "custom_voice.yaml"
     elif mode == "voice_design":
         path = req_dir / "voice_design.yaml"
+    elif mode == "bodhan":
+        path = req_dir / "bodhan.yaml"
     else:
         raise ValueError(f"Unknown TTS mode: {mode}")
 
@@ -81,11 +94,44 @@ def _load_template(settings: Settings) -> Dict:
 
 
 def _synth_one(model, turn: Dict[str, str], settings: Settings, template: Dict) -> None:
-    device = "cuda:0" if torch.cuda.is_available() else "cpu"
-    generator = torch.Generator(device=device).manual_seed(settings.tts.seed)
-
     out = Path(settings.pipeline.audio_dir) / f"{turn['turn_id']}_{turn['speaker']}.wav"
     mode = settings.tts.mode
+
+    if mode == "bodhan":
+        global _last_bodhan_call
+        wait = _BODHAN_MIN_INTERVAL - (time.monotonic() - _last_bodhan_call)
+        if wait > 0:
+            time.sleep(wait)
+        _last_bodhan_call = time.monotonic()
+        try:
+            host_cfg = template.get("host1") if turn["speaker"] == "Host 1" else template.get("host2")
+            voice = host_cfg.get("voice", "") if host_cfg else ""
+            lang = host_cfg.get("lang", "en") if host_cfg else "en"
+            style = host_cfg.get("style", "") if host_cfg else ""
+            instructions = {"lang": lang}
+            if style:
+                instructions["style"] = style
+            resp = requests.post(
+                "https://api.bodhan.ai/v1/audio/speech",
+                headers={"Authorization": f"Bearer {settings.tts.bodhan_api_key}"},
+                json={
+                    "model": "indic-speak",
+                    "input": turn["text"],
+                    "voice": voice,
+                    "instructions": json.dumps(instructions),
+                },
+                timeout=120,
+            )
+            resp.raise_for_status()
+            with open(out, "wb") as f:
+                f.write(resp.content)
+            print(f"[tts] {out.name}")
+        except Exception as e:
+            print(f"[tts] FAILED {out.name}: {e}")
+        return
+
+    device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    generator = torch.Generator(device=device).manual_seed(settings.tts.seed)
 
     try:
         if mode == "custom_voice":

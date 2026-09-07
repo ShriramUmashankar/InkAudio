@@ -1,0 +1,8 @@
+host1:
+  voice: "Amit"
+  lang: "en"
+  style: "educational lecture"
+host2:
+  voice: "Kavya"
+  lang: "en"
+  style: "educational lecture"

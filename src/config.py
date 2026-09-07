@@ -24,6 +24,7 @@ class TTSConfig:
     device: str
     language: str
     seed: int
+    bodhan_api_key: str
 
 
 @dataclass
@@ -89,7 +90,11 @@ def load_settings(path: str = "config.yaml") -> Settings:
 
     actor = _llm_from(raw["actor"])
     critic = _llm_from(raw["critic"])
-    tts = TTSConfig(**raw["tts"])
+    tts_raw = raw["tts"]
+    bodhan_env = tts_raw.pop("bodhan_api_key_env", "BODHAN_TTS")
+    bodhan_key = os.environ.get(bodhan_env, "")
+    tts_raw["bodhan_api_key"] = bodhan_key
+    tts = TTSConfig(**tts_raw)
     pipeline = PipelineConfig(**raw["pipeline"])
     stt = _stt_from(raw.get("stt", {}))
     return Settings(actor=actor, critic=critic, tts=tts, pipeline=pipeline, stt=stt)

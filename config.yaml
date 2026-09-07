@@ -10,9 +10,11 @@ critic:
 
 tts:
   # mode options:
-#   custom_voice  — preset speakers + style/instruct (uses src/tts_requirements/custom_voice.yaml)
-#   voice_design  — natural-language voice description (uses src/tts_requirements/voice_design.yaml)
-  mode: "voice_design"
+  #   custom_voice  — preset speakers + style/instruct (uses src/tts_requirements/custom_voice.yaml)
+  #   voice_design  — natural-language voice description (uses src/tts_requirements/voice_design.yaml)
+  #   bodhan        — Bodhan API, per-host voice + lang + optional style (uses src/tts_requirements/bodhan.yaml)
+  mode: "bodhan"
+  bodhan_api_key_env: "BODHAN_TTS"
   local_model_path: "models/Qwen3-TTS-12Hz-1.7B-CustomVoice"
   hf_repo_id: "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice"
   voice_design_model_path: "models/Qwen3-TTS-12Hz-1.7B-VoiceDesign"
