@@ -21,8 +21,6 @@ class TTSConfig:
     hf_repo_id: str
     voice_design_model_path: str
     voice_design_hf_repo_id: str
-    base_model_path: str
-    base_hf_repo_id: str
     device: str
     language: str
     seed: int

@@ -10,16 +10,13 @@ critic:
 
 tts:
   # mode options:
-  #   custom_voice  — preset speakers + style/instruct (uses tts_requirements/custom_voice.yaml)
-  #   voice_design  — natural-language voice description (uses tts_requirements/voice_design.yaml)
-  #   voice_clone   — reference audio + transcript (uses tts_requirements/voice_clone.yaml)
+#   custom_voice  — preset speakers + style/instruct (uses src/tts_requirements/custom_voice.yaml)
+#   voice_design  — natural-language voice description (uses src/tts_requirements/voice_design.yaml)
   mode: "voice_design"
   local_model_path: "models/Qwen3-TTS-12Hz-1.7B-CustomVoice"
   hf_repo_id: "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice"
   voice_design_model_path: "models/Qwen3-TTS-12Hz-1.7B-VoiceDesign"
   voice_design_hf_repo_id: "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign"
-  base_model_path: "models/Qwen3-TTS-12Hz-1.7B-Base"
-  base_hf_repo_id: "Qwen/Qwen3-TTS-12Hz-1.7B-Base"
   device: "auto"
   language: "English"
   seed: 42

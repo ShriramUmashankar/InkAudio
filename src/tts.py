@@ -7,7 +7,6 @@ from typing import Dict, List
 import soundfile as sf
 import torch
 import yaml
-from transformers import BitsAndBytesConfig
 
 from .config import Settings
 
@@ -26,6 +25,7 @@ def set_determinism(seed: int):
 
 def _load_model(settings: Settings):
     from qwen_tts import Qwen3TTSModel
+    from transformers import BitsAndBytesConfig
 
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
     dtype = torch.bfloat16 if device.startswith("cuda") else torch.float32
@@ -45,9 +45,6 @@ def _load_model(settings: Settings):
     elif mode == "voice_design":
         local_path = settings.tts.voice_design_model_path
         hf_repo = settings.tts.voice_design_hf_repo_id
-    elif mode == "voice_clone":
-        local_path = settings.tts.base_model_path
-        hf_repo = settings.tts.base_hf_repo_id
     else:
         raise ValueError(f"Unknown TTS mode: {mode}")
 
@@ -68,14 +65,12 @@ def _load_model(settings: Settings):
 
 
 def _load_template(settings: Settings) -> Dict:
-    req_dir = Path(__file__).parent.parent / "tts_requirements"
+    req_dir = Path(__file__).parent / "tts_requirements"
     mode = settings.tts.mode
     if mode == "custom_voice":
         path = req_dir / "custom_voice.yaml"
     elif mode == "voice_design":
         path = req_dir / "voice_design.yaml"
-    elif mode == "voice_clone":
-        path = req_dir / "voice_clone.yaml"
     else:
         raise ValueError(f"Unknown TTS mode: {mode}")
 
@@ -113,16 +108,6 @@ def _synth_one(model, turn: Dict[str, str], settings: Settings, template: Dict) 
                 instruct=instruct,
                 generator=generator,
             )
-        elif mode == "voice_clone":
-            ref_audio = template.get("ref_audio", "")
-            ref_text = template.get("ref_text", "")
-            wavs, sr = model.generate_voice_clone(
-                text=turn["text"],
-                language=settings.tts.language,
-                ref_audio=ref_audio,
-                ref_text=ref_text,
-                generator=generator,
-            )
         else:
             raise ValueError(f"Unknown TTS mode: {mode}")
 
@@ -136,8 +121,6 @@ def synthesize_turns(turns: List[Dict[str, str]], settings: Settings) -> None:
     if not turns:
         print("[tts] no turns to synthesize")
         return
-
-    set_determinism(settings.tts.seed)
 
     model = _load_model(settings)
     template = _load_template(settings)

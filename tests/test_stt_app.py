@@ -1,6 +1,5 @@
 import io
 import sys
-from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -22,8 +21,8 @@ class MockWhisperModel:
 
 
 def test_transcribe_endpoint():
-    import src.stt_app as stt_app_module
-    stt_app_module._model = MockWhisperModel()
+    import src.endpoints.transcribe as transcribe_module
+    transcribe_module._model = MockWhisperModel()
 
     from src.stt_app import app
     client = TestClient(app)
@@ -37,11 +36,11 @@ def test_transcribe_endpoint():
     data = response.json()
     assert data["transcript"] == "Hello world This is a test"
 
-    stt_app_module._model = None
+    transcribe_module._model = None
 
 
 def test_transcribe_response_model():
-    from src.stt_app import TranscriptResponse
+    from src.endpoints.transcribe import TranscriptResponse
 
     resp = TranscriptResponse(transcript="test transcript")
     assert resp.transcript == "test transcript"

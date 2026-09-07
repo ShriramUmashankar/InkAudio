@@ -9,7 +9,7 @@ from .script_gen import generate_script, regenerate_audio, revise_script
 def main() -> None:
     p = argparse.ArgumentParser(description="Local PDF -> 2-host podcast pipeline")
     p.add_argument("--pdf", default=None, help="PDF path (overrides config)")
-    p.add_argument("--skip-ingest", action="store_true")
+    p.add_argument("--skip-ingest", "--skip-ingestion", dest="skip_ingest", action="store_true")
     p.add_argument("--skip-script", action="store_true")
     p.add_argument("--skip-stitch", action="store_true")
     p.add_argument("--no-tts", action="store_true", help="Skip TTS and stitching; stop after script generation")
