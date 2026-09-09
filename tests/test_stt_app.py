@@ -1,10 +1,8 @@
 import io
-import sys
 
-import pytest
 from fastapi.testclient import TestClient
 
-sys.path.insert(0, "/home/shriram/Documents/SEM9/RAGenAI/PodcastGeneration")
+from src.api.main import app
 
 
 class MockSegment:
@@ -21,10 +19,9 @@ class MockWhisperModel:
 
 
 def test_transcribe_endpoint():
-    import src.endpoints.transcribe as transcribe_module
+    import src.api.routes.transcribe as transcribe_module
     transcribe_module._model = MockWhisperModel()
 
-    from src.stt_app import app
     client = TestClient(app)
 
     audio_content = b"fake audio data"
@@ -40,15 +37,13 @@ def test_transcribe_endpoint():
 
 
 def test_transcribe_response_model():
-    from src.endpoints.transcribe import TranscriptResponse
+    from src.api.models import TranscriptResponse
 
     resp = TranscriptResponse(transcript="test transcript")
     assert resp.transcript == "test transcript"
 
 
 def test_transcribe_empty_filename():
-    from src.stt_app import app
-
     client = TestClient(app)
 
     files = {"file": ("", io.BytesIO(b""), "audio/wav")}

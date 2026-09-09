@@ -1,243 +1,182 @@
-import json
-import os
-from unittest.mock import patch, MagicMock
+import io
+from unittest.mock import patch
+
 from fastapi.testclient import TestClient
+
+from src.api import job_queue
+from src.api.job_queue import JobBusyError, JobRecord
 from src.api.main import app
 
 
-def test_app_has_cors():
-    client = TestClient(app)
-    response = client.get("/api/jobs/test-job")
-    assert response.status_code in (200, 404)  # 404 if job not found, but CORS headers present
-
-
-def test_stt_endpoint_still_works():
-    client = TestClient(app)
-    # Just check route exists
-    routes = [r.path for r in app.routes]
-    assert "/api/transcribe" in routes or any("transcribe" in r for r in routes)
-
-
-def test_generate_bodhan_endpoint():
-    client = TestClient(app)
-    with patch("src.api.job_queue.get_worker") as mock_worker:
-        mock_worker.return_value.add_job.return_value = "test-job-id"
-        response = client.post(
-            "/api/jobs/bodhan",
-            files={"content_pdf": ("test.pdf", b"pdf_content", "application/pdf")},
-            data={"config": json.dumps({"bodhan": {"host1": {"voice": "Parth"}}, "pipeline": {"max_loops": 3}})},
-        )
-    assert response.status_code == 202
-    data = response.json()
-    assert data["job_id"] == "test-job-id"
-    assert data["tts_mode"] == "bodhan"
-    assert data["status"] == "queued"
-
-
-def test_generate_custom_voice_endpoint():
-    client = TestClient(app)
-    with patch("src.api.job_queue.get_worker") as mock_worker:
-        mock_worker.return_value.add_job.return_value = "cv-job-id"
-        response = client.post(
-            "/api/jobs/custom_voice",
-            files={"content_pdf": ("test.pdf", b"pdf_content", "application/pdf")},
-            data={"config": json.dumps({"custom_voice": {"host1": {"speaker": "ryan"}}, "pipeline": {"max_loops": 3}})},
-        )
-    assert response.status_code == 202
-    assert response.json()["tts_mode"] == "custom_voice"
-
-
-def test_generate_voice_design_endpoint():
-    client = TestClient(app)
-    with patch("src.api.job_queue.get_worker") as mock_worker:
-        mock_worker.return_value.add_job.return_value = "vd-job-id"
-        response = client.post(
-            "/api/jobs/voice_design",
-            files={"content_pdf": ("test.pdf", b"pdf_content", "application/pdf")},
-            data={"config": json.dumps({"voice_design": {"host1": {"instruct": "test"}}, "pipeline": {"max_loops": 3}})},
-        )
-    assert response.status_code == 202
-    assert response.json()["tts_mode"] == "voice_design"
-
-
-def test_generate_missing_content_pdf():
-    client = TestClient(app)
-    response = client.post(
-        "/api/jobs/bodhan",
-        files={},
+def _job(tmp_path, status="running", **kw):
+    return JobRecord(
+        tts_mode=kw.get("tts_mode", "bodhan"),
+        temp_dir=str(tmp_path),
+        content_pdf_path=str(tmp_path / "content.pdf"),
+        questions_pdf_path=str(tmp_path / "questions.pdf"),
+        config={},
+        status=status,
     )
-    assert response.status_code == 422
 
 
-def test_generate_invalid_mode():
+def test_generate_starts_job(tmp_path, monkeypatch):
+    fake = _job(tmp_path)
+    monkeypatch.setattr(job_queue, "create_job", lambda mode, cfg: fake)
+    started = {}
+    monkeypatch.setattr(job_queue, "run_job", lambda job: started.update(job=job))
     client = TestClient(app)
-    response = client.post(
-        "/api/jobs/invalid_mode",
-        files={"content_pdf": ("test.pdf", b"pdf_content", "application/pdf")},
+    r = client.post("/api/job/bodhan", files={"content_pdf": ("a.pdf", b"%PDF", "application/pdf")})
+    assert r.status_code == 202
+    assert r.json() == {"status": "running", "tts_mode": "bodhan"}
+    assert started["job"] is fake
+    assert (tmp_path / "content.pdf").read_bytes() == b"%PDF"
+
+
+def test_generate_409_when_busy(tmp_path, monkeypatch):
+    def busy(mode, cfg):
+        raise JobBusyError("generation already in progress")
+    monkeypatch.setattr(job_queue, "create_job", busy)
+    client = TestClient(app)
+    r = client.post("/api/job/bodhan", files={"content_pdf": ("a.pdf", b"%PDF", "application/pdf")})
+    assert r.status_code == 409
+
+
+def test_generate_unknown_mode():
+    client = TestClient(app)
+    r = client.post("/api/job/nonsense", files={"content_pdf": ("a.pdf", b"%PDF", "application/pdf")})
+    assert r.status_code == 404
+
+
+def test_generate_invalid_config():
+    client = TestClient(app)
+    r = client.post(
+        "/api/job/bodhan",
+        files={"content_pdf": ("a.pdf", b"%PDF", "application/pdf")},
+        data={"config": "{not json"},
     )
-    assert response.status_code == 404
+    assert r.status_code == 400
 
 
-def test_get_job_status():
+def test_status_idle():
     client = TestClient(app)
-    with patch("src.api.job_queue.get_job_queue") as mock_queue:
-        mock_job = MagicMock()
-        mock_job.job_id = "test-job"
-        mock_job.tts_mode = "bodhan"
-        mock_job.status = "completed"
-        mock_job.created_at = "2026-09-09T12:00:00Z"
-        mock_job.completed_at = "2026-09-09T12:05:00Z"
-        mock_job.result = {"mp3_url": "/api/files/Audio/final_podcast.mp3"}
-        mock_job.error = None
-        mock_queue.return_value = [mock_job]
-        response = client.get("/api/jobs/test-job")
-    assert response.status_code == 200
-    data = response.json()
-    assert data["job_id"] == "test-job"
-    assert data["status"] == "completed"
+    r = client.get("/api/job")
+    assert r.status_code == 200
+    assert r.json() == {"status": "idle"}
 
 
-def test_get_job_not_found():
+def test_status_running(tmp_path):
+    job_queue._current_job = _job(tmp_path, status="running")
     client = TestClient(app)
-    with patch("src.api.job_queue.get_job_queue") as mock_queue:
-        mock_queue.return_value = []
-        response = client.get("/api/jobs/nonexistent")
-    assert response.status_code == 404
+    r = client.get("/api/job")
+    assert r.json()["status"] == "running"
+    assert r.json()["tts_mode"] == "bodhan"
+    job_queue._current_job = None
 
 
-def test_sse_events_stream():
+def test_result_not_ready(tmp_path):
+    job_queue._current_job = _job(tmp_path, status="completed")
     client = TestClient(app)
-    with patch("src.api.job_queue.get_job_queue") as mock_queue:
-        mock_job = MagicMock()
-        mock_job.job_id = "test-job"
-        mock_job.status = "completed"
-        mock_job._sse_listeners = []
-        mock_queue.return_value = [mock_job]
-        response = client.get("/api/jobs/test-job/events")
-    assert response.status_code == 200
-    assert "text/event-stream" in response.headers.get("content-type", "")
+    r = client.get("/api/job/result")
+    assert r.status_code == 404
+    job_queue._current_job = None
 
 
-def test_revision_on_job():
+def test_result_serves_mp3(tmp_path):
+    job = _job(tmp_path, status="completed")
+    mp3 = tmp_path / "final_podcast.mp3"
+    mp3.write_bytes(b"ID3fake")
+    job_queue._current_job = job
     client = TestClient(app)
-    with patch("src.api.job_queue.get_job_queue") as mock_queue, \
-         patch("src.api.job_queue.get_worker") as mock_worker:
-        mock_job = MagicMock()
-        mock_job.job_id = "test-job"
-        mock_job.tts_mode = "bodhan"
-        mock_job.status = "completed"
-        mock_job.content_pdf_path = "/tmp/test.pdf"
-        mock_job.questions_pdf_path = None
-        mock_job.config = {}
-        mock_queue.return_value = [mock_job]
-        mock_worker.return_value.add_job.return_value = "rev-123"
-        response = client.post(
-            "/api/jobs/test-job/revise",
-            json={"feedback": "Speak more slowly"},
-        )
-    assert response.status_code == 202
-    data = response.json()
-    assert data["job_id"] == "rev-123"
-    assert data["status"] == "queued"
-    assert data["tts_mode"] == "bodhan"
+    r = client.get("/api/job/result")
+    assert r.status_code == 200
+    assert r.content == b"ID3fake"
+    job_queue._current_job = None
 
 
-def test_revision_on_nonexistent_job():
+def test_script_serves_json(tmp_path):
+    job = _job(tmp_path, status="completed")
+    (tmp_path / "script.json").write_text('{"turns": []}', encoding="utf-8")
+    job_queue._current_job = job
     client = TestClient(app)
-    with patch("src.api.job_queue.get_job_queue") as mock_queue:
-        mock_queue.return_value = []
-        response = client.post("/api/jobs/nonexistent/revise", json={"feedback": "test"})
-    assert response.status_code == 404
+    r = client.get("/api/job/script")
+    assert r.status_code == 200
+    assert r.json() == {"turns": []}
+    job_queue._current_job = None
 
 
-def test_revision_on_failed_job():
+def test_questions_404_without_report(tmp_path):
+    job_queue._current_job = _job(tmp_path, status="completed")
     client = TestClient(app)
-    with patch("src.api.job_queue.get_job_queue") as mock_queue:
-        mock_job = MagicMock()
-        mock_job.job_id = "failed-job"
-        mock_job.tts_mode = "bodhan"
-        mock_job.status = "failed"
-        mock_queue.return_value = [mock_job]
-        response = client.post("/api/jobs/failed-job/revise", json={"feedback": "test"})
-    assert response.status_code == 400
+    r = client.get("/api/job/questions")
+    assert r.status_code == 404
+    job_queue._current_job = None
 
 
-def test_finish_job():
+def test_questions_serves_report(tmp_path):
+    job = _job(tmp_path, status="completed")
+    job.questions_report = {"answerable": [{"question_number": 1, "question": "A?"}], "unanswerable": []}
+    job_queue._current_job = job
     client = TestClient(app)
-    with patch("src.api.job_queue.get_job_queue") as mock_queue, \
-         patch("src.api.model_manager.get_model_manager") as mock_mm:
-        mock_job = MagicMock()
-        mock_job.job_id = "test-job"
-        mock_job.tts_mode = "custom_voice"
-        pending = MagicMock()
-        pending.job_id = "pending-job"
-        mock_queue.return_value = [mock_job, pending]
-        mock_mm_instance = MagicMock()
-        mock_mm.return_value = mock_mm_instance
-        response = client.post("/api/jobs/test-job/finish")
-    assert response.status_code == 200
-    data = response.json()
-    assert data["status"] == "cleaned_up"
-    assert data["model_unloaded"] is True
-    assert not mock_mm_instance.unload_all.called
-    mock_mm_instance.unload.assert_called_once_with("custom_voice")
-    assert len(mock_queue.return_value) == 2
+    r = client.get("/api/job/questions")
+    assert r.status_code == 200
+    assert r.json()["answerable"][0]["question"] == "A?"
+    job_queue._current_job = None
 
 
-def test_finish_bodhan_has_no_model_to_unload():
+def test_finish_refuses_while_running(tmp_path):
+    job_queue._current_job = _job(tmp_path, status="running")
     client = TestClient(app)
-    with patch("src.api.job_queue.get_job_queue") as mock_queue, \
-         patch("src.api.model_manager.get_model_manager") as mock_mm:
-        mock_job = MagicMock()
-        mock_job.job_id = "test-job"
-        mock_job.tts_mode = "bodhan"
-        mock_queue.return_value = [mock_job]
-        mock_mm.return_value = MagicMock()
-        response = client.post("/api/jobs/test-job/finish")
-    assert response.status_code == 200
-    data = response.json()
-    assert data["status"] == "cleaned_up"
-    assert data["model_unloaded"] is False
+    r = client.post("/api/job/finish")
+    assert r.status_code == 400
+    job_queue._current_job = None
 
 
-def test_generate_sanitizes_upload_filename():
+def test_finish_cleans_completed(tmp_path):
+    job_queue._current_job = _job(tmp_path, status="completed")
+    with patch("src.api.job_queue.get_model_manager_instance") as mm, \
+         patch("src.api.job_queue.shutil.rmtree"):
+        client = TestClient(app)
+        r = client.post("/api/job/finish")
+    assert r.status_code == 200
+    assert r.json() == {"status": "cleaned_up"}
+    assert job_queue.get_current_job() is None
+
+
+def test_terminate_sets_cancel_flag(tmp_path):
+    job = _job(tmp_path, status="running")
+    job_queue._current_job = job
     client = TestClient(app)
-    with patch("src.api.job_queue.get_worker") as mock_worker:
-        mock_worker.return_value.add_job.return_value = "job-1"
-        response = client.post(
-            "/api/jobs/bodhan",
-            files={"content_pdf": ("../../etc/passwd", b"pdf_content", "application/pdf")},
-        )
-    assert response.status_code == 202
-    call = mock_worker.return_value.add_job.call_args
-    content_pdf_path = call.kwargs["content_pdf_path"]
-    assert ".." not in content_pdf_path
-    assert os.path.basename(content_pdf_path) == "passwd"
-    if os.path.exists(content_pdf_path):
-        os.remove(content_pdf_path)
+    r = client.post("/api/job/terminate")
+    assert r.status_code == 200
+    assert job.cancel_requested is True
+    assert r.json()["status"] == "terminating"
+    job_queue._current_job = None
 
 
-def test_finish_nonexistent_job():
+def test_terminate_refuses_when_idle():
     client = TestClient(app)
-    with patch("src.api.job_queue.get_job_queue") as mock_queue:
-        mock_queue.return_value = []
-        response = client.post("/api/jobs/nonexistent/finish")
-    assert response.status_code == 404
+    r = client.post("/api/job/terminate")
+    assert r.status_code == 400
 
 
-def test_serve_script_json():
+def test_revise_refuses_unless_completed(tmp_path):
+    job_queue._current_job = _job(tmp_path, status="running")
     client = TestClient(app)
-    response = client.get("/api/files/Content/script.json")
-    assert response.status_code == 200
+    r = client.post("/api/job/revise", json={"feedback": "faster"})
+    assert r.status_code == 400
+    job_queue._current_job = None
 
 
-def test_serve_final_mp3():
+def test_revise_restarts_completed_job(tmp_path, monkeypatch):
+    job = _job(tmp_path, status="completed")
+    job_queue._current_job = job
+    started = {}
+    monkeypatch.setattr(job_queue, "run_job", lambda j: started.update(job=j))
     client = TestClient(app)
-    response = client.get("/api/files/Audio/final_podcast.mp3")
-    assert response.status_code in (200, 404)
-
-
-def test_serve_404():
-    client = TestClient(app)
-    response = client.get("/api/files/nonexistent.txt")
-    assert response.status_code == 404
+    r = client.post("/api/job/revise", json={"feedback": "faster please"})
+    assert r.status_code == 202
+    assert started["job"] is job
+    assert job.config["revision"] is True
+    assert job.config["feedback"] == "faster please"
+    assert job.status == "running"
+    job_queue._current_job = None

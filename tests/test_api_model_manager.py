@@ -4,8 +4,9 @@ from src.api.model_manager import ModelManager
 
 
 def test_singleton():
-    m1 = ModelManager()
-    m2 = ModelManager()
+    from src.api.model_manager import get_model_manager
+    m1 = get_model_manager()
+    m2 = get_model_manager()
     assert m1 is m2
 
 

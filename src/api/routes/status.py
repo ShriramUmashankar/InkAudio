@@ -1,56 +1,72 @@
-from fastapi import APIRouter, HTTPException
-from fastapi.responses import StreamingResponse
-from pydantic import ValidationError
-import json
 import asyncio
+import json
+from pathlib import Path
 from typing import AsyncIterator
 
-from src.api import job_queue as job_queue_mod
-from src.api.models import JobInfo, JobResult
+from fastapi import APIRouter, HTTPException
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+
+from src.api import job_queue
 
 router = APIRouter()
 
 
-@router.get("/api/jobs/{job_id}")
-async def get_job_status(job_id: str):
-    queue = job_queue_mod.get_job_queue()
-    for job in queue:
-        if job.job_id == job_id:
-            result = None
-            if job.result:
-                try:
-                    result = JobResult(**job.result)
-                except ValidationError:
-                    result = None
-            return JobInfo(
-                job_id=job.job_id,
-                tts_mode=job.tts_mode,
-                status=job.status,
-                created_at=job.created_at,
-                completed_at=job.completed_at,
-                result=result,
-                error=job.error,
-            )
-    raise HTTPException(status_code=404, detail="Job not found")
-
-
-@router.get("/api/jobs/{job_id}/events")
-async def job_events(job_id: str):
-    queue = job_queue_mod.get_job_queue()
-    job = None
-    for j in queue:
-        if j.job_id == job_id:
-            job = j
-            break
+@router.get("/api/job")
+async def job_status():
+    job = job_queue.get_current_job()
     if job is None:
-        raise HTTPException(status_code=404, detail="Job not found")
+        return {"status": "idle"}
+    return {
+        "status": job.status,
+        "tts_mode": job.tts_mode,
+        "created_at": job.created_at,
+        "completed_at": job.completed_at,
+        "error": job.error,
+    }
+
+
+@router.get("/api/job/result")
+async def get_result():
+    job = job_queue.get_current_job()
+    if job is None:
+        raise HTTPException(status_code=404, detail="no job")
+    path = Path(job.temp_dir) / "final_podcast.mp3"
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="podcast not ready")
+    return FileResponse(path, media_type="audio/mpeg")
+
+
+@router.get("/api/job/script")
+async def get_script():
+    job = job_queue.get_current_job()
+    if job is None:
+        raise HTTPException(status_code=404, detail="no job")
+    path = Path(job.temp_dir) / "script.json"
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="script not ready")
+    return FileResponse(path, media_type="application/json")
+
+
+@router.get("/api/job/questions")
+async def get_questions():
+    job = job_queue.get_current_job()
+    if job is None or not job.questions_report:
+        raise HTTPException(status_code=404, detail="no questions report")
+    return JSONResponse(job.questions_report)
+
+
+@router.get("/api/job/events")
+async def job_events():
+    job = job_queue.get_current_job()
+    if job is None:
+        raise HTTPException(status_code=404, detail="no job")
 
     async def event_generator() -> AsyncIterator[str]:
         loop = asyncio.get_running_loop()
         listener = asyncio.Queue()
         job._sse_listeners.append((listener, loop))
         try:
-            while job.status not in ("completed", "failed"):
+            while job.status == "running":
                 try:
                     payload = await asyncio.wait_for(listener.get(), timeout=15)
                 except asyncio.TimeoutError:

@@ -3,14 +3,9 @@ import tempfile
 from pathlib import Path
 
 from fastapi import APIRouter, File, UploadFile, HTTPException
-from pydantic import BaseModel
 
-from ..config import load_settings
-
-
-class TranscriptResponse(BaseModel):
-    transcript: str
-
+from src.api.models import TranscriptResponse
+from src.config import load_settings
 
 _model = None
 _settings = None
@@ -40,7 +35,7 @@ router = APIRouter()
 
 
 @router.post(
-    "/transcribe",
+    "/api/transcribe",
     response_model=TranscriptResponse,
     summary="Transcribe audio file",
     description="Upload an audio file (WAV, MP3, FLAC, OGG, etc.) and get the transcript. "

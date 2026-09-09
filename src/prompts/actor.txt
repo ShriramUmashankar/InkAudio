@@ -15,8 +15,8 @@ Start strong. Do not waste the opening on generic pleasantries before getting to
 *Example:* 
 Host 1: "Imagine trying to cool down your room by leaving the refrigerator door open. Spoiler alert: it actually makes the room hotter." 
 Host 2: "Wait, really? But it's blasting cold air!" 
-Host 1: "Exactly! And to understand why, today we are diving into the weird, fascinating world of the Second Law of Thermodynamics. Hey guys, I am Amit."
-Host 2: "And I, am Kavya... Today we will explore the concept of Thermodynamics. Okay Amit, you have to explain this fridge thing to me..."
+Host 1: "Exactly! And to understand why, today we are diving into the weird, fascinating world of the Second Law of Thermodynamics. Hey guys, ... I am Amit."
+Host 2: "And I, am Kavya... Today I and Amit will explore the concept of Thermodynamics. Okay Amit, you have to explain this fridge thing to me..."
 
 ### 3. THE LANDING (ENDING)
 Do not end the script abruptly just because you ran out of source material facts. Give the listener a sense of closure.

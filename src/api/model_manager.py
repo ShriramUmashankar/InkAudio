@@ -1,24 +1,16 @@
 import torch
-from typing import Dict, Optional
-
 from dataclasses import replace
 
 from src.config import load_settings
 from src.tts import _load_model as _load_qwen_model
 
-_model_manager_instance = None
-
 
 class ModelManager:
-    def __new__(cls):
-        global _model_manager_instance
-        if _model_manager_instance is None:
-            _model_manager_instance = super().__new__(cls)
-            _model_manager_instance._models = {}
-            _model_manager_instance._current_mode = None
-        return _model_manager_instance
+    def __init__(self):
+        self._models = {}
+        self._current_mode = None
 
-    def get_model(self, mode: str, settings=None):
+    def get_model(self, mode, settings=None):
         if mode == "bodhan":
             return None
         if settings is None:
@@ -31,7 +23,7 @@ class ModelManager:
         self._current_mode = mode
         return self._models[mode]
 
-    def unload(self, mode: str):
+    def unload(self, mode):
         if mode in self._models:
             del self._models[mode]
             if torch.cuda.is_available():
@@ -46,9 +38,15 @@ class ModelManager:
         self._current_mode = None
 
     @property
-    def loaded_modes(self) -> list:
+    def loaded_modes(self):
         return list(self._models.keys())
 
 
-def get_model_manager() -> ModelManager:
-    return ModelManager()
+_instance = None
+
+
+def get_model_manager():
+    global _instance
+    if _instance is None:
+        _instance = ModelManager()
+    return _instance
