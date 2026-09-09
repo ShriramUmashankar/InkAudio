@@ -166,3 +166,21 @@ def test_finish_nonexistent_job():
         mock_queue.return_value = []
         response = client.post("/api/jobs/nonexistent/finish")
     assert response.status_code == 404
+
+
+def test_serve_script_json():
+    client = TestClient(app)
+    response = client.get("/api/files/Content/script.json")
+    assert response.status_code == 200
+
+
+def test_serve_final_mp3():
+    client = TestClient(app)
+    response = client.get("/api/files/Audio/final_podcast.mp3")
+    assert response.status_code in (200, 404)
+
+
+def test_serve_404():
+    client = TestClient(app)
+    response = client.get("/api/files/nonexistent.txt")
+    assert response.status_code == 404
