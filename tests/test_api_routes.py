@@ -101,3 +101,42 @@ def test_sse_events_stream():
         response = client.get("/api/jobs/test-job/events")
     assert response.status_code == 200
     assert "text/event-stream" in response.headers.get("content-type", "")
+
+
+def test_revision_on_job():
+    client = TestClient(app)
+    with patch("src.api.job_queue.get_job_queue") as mock_queue:
+        mock_job = MagicMock()
+        mock_job.job_id = "test-job"
+        mock_job.tts_mode = "bodhan"
+        mock_job.status = "completed"
+        mock_queue.return_value = [mock_job]
+        with patch("src.api.routes.revise.revise_script"):
+            response = client.post(
+                "/api/jobs/test-job/revise",
+                json={"feedback": "Speak more slowly"},
+            )
+    assert response.status_code == 202
+    data = response.json()
+    assert data["job_id"] == "test-job"
+    assert data["status"] == "completed"
+
+
+def test_revision_on_nonexistent_job():
+    client = TestClient(app)
+    with patch("src.api.job_queue.get_job_queue") as mock_queue:
+        mock_queue.return_value = []
+        response = client.post("/api/jobs/nonexistent/revise", json={"feedback": "test"})
+    assert response.status_code == 404
+
+
+def test_revision_on_failed_job():
+    client = TestClient(app)
+    with patch("src.api.job_queue.get_job_queue") as mock_queue:
+        mock_job = MagicMock()
+        mock_job.job_id = "failed-job"
+        mock_job.tts_mode = "bodhan"
+        mock_job.status = "failed"
+        mock_queue.return_value = [mock_job]
+        response = client.post("/api/jobs/failed-job/revise", json={"feedback": "test"})
+    assert response.status_code == 400
