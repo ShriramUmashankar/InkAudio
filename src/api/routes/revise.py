@@ -3,8 +3,6 @@ from fastapi.responses import JSONResponse
 
 from src.api import job_queue as job_queue_mod
 from src.api.models import RevisionRequest
-from src.config import load_settings
-from src.script_gen import revise_script
 
 router = APIRouter()
 
@@ -22,9 +20,11 @@ async def revise_job(job_id: str, request: RevisionRequest):
     if job.status == "failed":
         raise HTTPException(status_code=400, detail="Cannot revise a failed job")
 
-    settings = load_settings()
-    settings.tts.mode = job.tts_mode
-
-    revise_script(settings, request.feedback)
-
-    return JSONResponse(status_code=202, content={"job_id": job_id, "status": "completed"})
+    worker = job_queue_mod.get_worker()
+    new_job_id = worker.add_job(
+        tts_mode=job.tts_mode,
+        content_pdf_path=job.content_pdf_path,
+        questions_pdf_path=job.questions_pdf_path,
+        config={**job.config, "feedback": request.feedback, "revision": True},
+    )
+    return JSONResponse(status_code=202, content={"job_id": new_job_id, "status": "queued", "tts_mode": job.tts_mode})
