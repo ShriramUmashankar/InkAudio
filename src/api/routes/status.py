@@ -46,21 +46,27 @@ async def job_events(job_id: str):
         raise HTTPException(status_code=404, detail="Job not found")
 
     async def event_generator() -> AsyncIterator[str]:
-        while isinstance(job.status, str) and job.status not in ("completed", "failed"):
-            await asyncio.sleep(0.5)
-            yield f"event: status\ndata: {json.dumps({'status': job.status})}\n\n"
-            if job.result:
+        listener = asyncio.Queue()
+        if listener not in job._sse_listeners:
+            job._sse_listeners.append(listener)
+        try:
+            while job.status not in ("completed", "failed"):
                 try:
-                    yield f"event: partial\ndata: {json.dumps(job.result)}\n\n"
-                except TypeError:
-                    yield f"event: partial\ndata: {json.dumps(str(job.result))}\n\n"
-        if job.result:
-            try:
-                yield f"event: complete\ndata: {json.dumps(job.result)}\n\n"
-            except TypeError:
-                yield f"event: complete\ndata: {json.dumps(str(job.result))}\n\n"
-        if job.error:
-            yield f"event: error\ndata: {json.dumps({'message': str(job.error)})}\n\n"
+                    payload = await asyncio.wait_for(listener.get(), timeout=15)
+                except asyncio.TimeoutError:
+                    yield ": keep-alive\n\n"
+                    continue
+                yield f"data: {payload}\n\n"
+            while not listener.empty():
+                try:
+                    payload = listener.get_nowait()
+                except asyncio.QueueEmpty:
+                    break
+                yield f"data: {payload}\n\n"
+            yield "event: done\ndata: {}\n\n"
+        finally:
+            if listener in job._sse_listeners:
+                job._sse_listeners.remove(listener)
 
     return StreamingResponse(
         event_generator(),
