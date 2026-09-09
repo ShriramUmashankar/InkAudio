@@ -2,7 +2,7 @@ import pytest
 from src.api.models import (
     BodhanConfig, CustomVoiceConfig, VoiceDesignConfig,
     PipelineConfig, GenerateRequest, GenerateResponse,
-    JobStatus, JobResult, JobInfo,
+    JobResult, JobInfo,
     RevisionRequest, FinishRequest, TranscriptResponse,
     SSEEvent,
 )
@@ -43,7 +43,7 @@ def test_job_info_result_structure():
     info = JobInfo(
         job_id="abc", tts_mode="bodhan", status="completed",
         created_at="2026-09-09T12:00:00Z", completed_at="2026-09-09T12:05:00Z",
-        result={"mp3_url": "/api/files/Audio/final_podcast.mp3"},
+        result={"mp3_url": "/api/files/Audio/final_podcast.mp3", "script_url": "/api/files/Content/script.json"},
         error=None,
     )
     assert info.result["mp3_url"] == "/api/files/Audio/final_podcast.mp3"

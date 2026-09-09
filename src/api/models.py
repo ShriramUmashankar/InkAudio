@@ -1,15 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Dict, List, Optional, Any
-from datetime import datetime
-import json
 from enum import Enum
-
-
-class JobStatus(str, Enum):
-    queued = "queued"
-    processing = "processing"
-    completed = "completed"
-    failed = "failed"
 
 
 class BodhanHostConfig(BaseModel):
@@ -74,7 +65,7 @@ class SSEEvent(BaseModel):
 
 class JobResult(BaseModel):
     mp3_url: str
-    script_url: Optional[str] = None
+    script_url: str
     turns: List[Dict[str, Any]] = []
 
     def __getitem__(self, key):
@@ -97,11 +88,6 @@ class RevisionRequest(BaseModel):
 
 class FinishRequest(BaseModel):
     pass
-
-
-class FinishResponse(BaseModel):
-    status: str
-    model_unloaded: bool
 
 
 class TranscriptResponse(BaseModel):

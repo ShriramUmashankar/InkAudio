@@ -2,6 +2,7 @@ docling
 langgraph
 openai
 pydub
+requests
 soundfile
 torch
 transformers
