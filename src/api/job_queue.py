@@ -171,6 +171,10 @@ class JobWorker:
         return job_id
 
 
+def get_job_queue() -> List[JobRecord]:
+    return job_queue
+
+
 def get_worker() -> JobWorker:
     global _worker_instance
     if _worker_instance is None:

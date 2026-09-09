@@ -1,5 +1,5 @@
 import json
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
 from src.api.main import app
 
@@ -62,3 +62,42 @@ def test_generate_invalid_mode():
         files={"content_pdf": ("test.pdf", b"pdf_content", "application/pdf")},
     )
     assert response.status_code == 404
+
+
+def test_get_job_status():
+    client = TestClient(app)
+    with patch("src.api.job_queue.get_job_queue") as mock_queue:
+        mock_job = MagicMock()
+        mock_job.job_id = "test-job"
+        mock_job.tts_mode = "bodhan"
+        mock_job.status = "completed"
+        mock_job.created_at = "2026-09-09T12:00:00Z"
+        mock_job.completed_at = "2026-09-09T12:05:00Z"
+        mock_job.result = {"mp3_url": "/api/files/Audio/final_podcast.mp3"}
+        mock_job.error = None
+        mock_queue.return_value = [mock_job]
+        response = client.get("/api/jobs/test-job")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["job_id"] == "test-job"
+    assert data["status"] == "completed"
+
+
+def test_get_job_not_found():
+    client = TestClient(app)
+    with patch("src.api.job_queue.get_job_queue") as mock_queue:
+        mock_queue.return_value = []
+        response = client.get("/api/jobs/nonexistent")
+    assert response.status_code == 404
+
+
+def test_sse_events_stream():
+    client = TestClient(app)
+    with patch("src.api.job_queue.get_job_queue") as mock_queue:
+        mock_job = MagicMock()
+        mock_job.job_id = "test-job"
+        mock_job._sse_listeners = []
+        mock_queue.return_value = [mock_job]
+        response = client.get("/api/jobs/test-job/events")
+    assert response.status_code == 200
+    assert "text/event-stream" in response.headers.get("content-type", "")
