@@ -20,8 +20,6 @@ async def finish_job(job_id: str):
 
     mm = model_manager_mod.get_model_manager()
     mm.unload(job.tts_mode)
-    mm.unload_all()
+    model_unloaded = job.tts_mode != "bodhan"
 
-    queue.clear()
-
-    return JSONResponse(status_code=200, content={"status": "cleaned_up", "model_unloaded": True})
+    return JSONResponse(status_code=200, content={"status": "cleaned_up", "model_unloaded": model_unloaded})
