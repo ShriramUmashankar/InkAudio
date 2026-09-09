@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Podcast Studio — Progress</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div id="nav"></div>
+<main class="card">
+  <div class="hero small">
+    <div class="eq" id="hero-eq"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    <h1>Generation Progress</h1>
+    <p class="sub" id="status-line">Checking job status…</p>
+  </div>
+
+  <div class="bar"><div class="fill" id="fill" style="width:0%"></div></div>
+  <p class="muted" id="pct">0%</p>
+
+  <div class="stepper" id="stepper">
+    <span class="step" data-stage="ingest">Ingest</span><span class="step" data-stage="script_gen">Script</span><span class="step" data-stage="tts">TTS</span><span class="step" data-stage="stitch">Stitch</span>
+  </div>
+
+  <p class="muted" id="meta"></p>
+  <div class="alert" id="error" hidden></div>
+  <button class="danger" id="terminate">Terminate</button>
+  <a href="index.html" class="link" id="back" hidden>Back to Generate</a>
+</main>
+<script type="module">
+import { renderNav } from "./js/nav.js";
+import { getJobStatus, terminateJob } from "./js/api.js";
+import { streamEvents } from "./js/sse.js";
+
+renderNav("progress.html");
+const fill = document.getElementById("fill");
+const pct = document.getElementById("pct");
+const stepper = document.getElementById("stepper");
+const meta = document.getElementById("meta");
+const statusLine = document.getElementById("status-line");
+const errorEl = document.getElementById("error");
+const termBtn = document.getElementById("terminate");
+const back = document.getElementById("back");
+
+const STAGES = ["ingest", "script_gen", "tts", "stitch"];
+
+const STORAGE_KEY = "podcast_progress";
+
+function saveProgress(p, stage) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ progress: p, stage }));
+}
+
+function loadProgress() {
+  try {
+    const data = localStorage.getItem(STORAGE_KEY);
+    if (data) return JSON.parse(data);
+  } catch {}
+  return { progress: 0, stage: "ingest" };
+}
+
+function clearProgress() {
+  localStorage.removeItem(STORAGE_KEY);
+}
+
+let receivedFirstEvent = false;
+
+function setProgress(p) {
+  p = Math.max(0, Math.min(100, Math.round(p)));
+  if (!receivedFirstEvent || p >= parseInt(fill.style.width || "0", 10)) {
+    fill.style.width = p + "%";
+    pct.textContent = p + "%";
+    receivedFirstEvent = true;
+  }
+}
+
+function setStage(stage) {
+  stepper.querySelectorAll(".step").forEach((s) => {
+    s.classList.toggle("done", STAGES.indexOf(s.dataset.stage) < STAGES.indexOf(stage));
+    s.classList.toggle("current", s.dataset.stage === stage);
+  });
+}
+
+function setError(msg) {
+  errorEl.textContent = msg;
+  errorEl.hidden = false;
+  termBtn.hidden = true;
+  back.hidden = false;
+  clearProgress();
+  stopDots();
+}
+
+function startDots(base = "Running") {
+  if (window._dotsTimer) return;
+  const dots = ["", ".", "..", "..."];
+  let i = 0;
+  window._dotsTimer = setInterval(() => {
+    statusLine.textContent = base + dots[i];
+    i = (i + 1) % dots.length;
+  }, 500);
+}
+
+function stopDots() {
+  if (window._dotsTimer) {
+    clearInterval(window._dotsTimer);
+    window._dotsTimer = null;
+  }
+}
+
+const run = (es) => {
+  streamEvents({
+    stage_start: (d) => { setStage(d.stage); setProgress(d.progress); statusLine.textContent = `Running: ${d.stage}`; saveProgress(d.progress, d.stage); startDots(`Running: ${d.stage}`); },
+    stage_complete: (d) => { setStage(d.stage); setProgress(d.progress); statusLine.textContent = `Done: ${d.stage}`; saveProgress(d.progress, d.stage); },
+    model_loading: (d) => { meta.textContent = `Loading model…`; startDots("Loading model"); },
+    turn_synthesized: (d) => { meta.textContent = `Synthesized ${d.turn_id} · ${d.speaker}`; setProgress(d.progress); saveProgress(d.progress, "tts"); },
+    revision_complete: (d) => { setProgress(d.progress); statusLine.textContent = "Revision applied — stitching…"; saveProgress(d.progress, "stitch"); },
+    complete: (d) => { clearProgress(); stopDots(); window.location.href = "result.html"; },
+    failed: (d) => { clearProgress(); stopDots(); setError(d.error || "Generation failed."); },
+    terminated: (d) => { clearProgress(); stopDots(); setError("Generation terminated."); },
+  });
+  return es;
+};
+
+(async () => {
+  const saved = loadProgress();
+  setProgress(saved.progress);
+  setStage(saved.stage);
+
+  const st = await getJobStatus();
+  if (st.body && (st.body.status === "completed" || st.body.status === "running")) {
+    statusLine.textContent = st.body.status === "running" ? "Running" : "Job finished.";
+    run();
+  } else if (st.body && st.body.status === "failed") {
+    clearProgress();
+    setError(st.body.error || "Generation failed.");
+  } else {
+    clearProgress();
+    setError("No active job.");
+  }
+})();
+
+termBtn.addEventListener("click", async () => {
+  const r = await terminateJob();
+  if (!r.ok) { errorEl.textContent = r.body?.detail || "Cannot terminate now."; errorEl.hidden = false; }
+});
+</script>
+</body>
+</html>

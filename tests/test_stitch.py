@@ -1,3 +1,4 @@
+import json
 import os
 import tempfile
 
@@ -51,3 +52,16 @@ def test_stitch_no_files_returns_none():
     with tempfile.TemporaryDirectory() as d:
         settings = _make_settings(d)
         assert stitch(settings) is None
+
+
+def test_stitch_writes_timeline():
+    with tempfile.TemporaryDirectory() as d:
+        _write_silent(os.path.join(d, "0001_Host 1.wav"), 100)
+        _write_silent(os.path.join(d, "0002_Host 2.wav"), 100)
+        settings = _make_settings(d)
+        stitch(settings)
+        timeline = json.loads(open(os.path.join(d, "timeline.json")).read())
+        assert timeline == [
+            {"turn_id": 1, "speaker": "Host 1", "start_ms": 0, "end_ms": 100},
+            {"turn_id": 2, "speaker": "Host 2", "start_ms": 600, "end_ms": 700},
+        ]

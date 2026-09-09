@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Podcast Studio — Result</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div id="nav"></div>
+<main class="card">
+  <div class="row">
+    <div class="hero small">
+      <h1>Your Podcast</h1>
+      <p class="sub">Listen along — the script follows the audio.</p>
+    </div>
+    <a href="index.html" id="newpod" class="link pill">New podcast</a>
+  </div>
+
+  <div class="player" id="player">
+    <div class="eq playing" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    <button class="play" id="play-btn" aria-label="Play"></button>
+    <input type="range" id="seek" min="0" max="0" step="0.1" value="0" aria-label="Seek">
+    <span class="time" id="cur">0:00</span><span class="time muted">/</span><span class="time" id="dur">0:00</span>
+    <a class="download" href="/api/job/result" download aria-label="Download MP3">▼</a>
+  </div>
+  <audio id="audio" src="/api/job/result" preload="auto"></audio>
+
+  <div class="alert" id="error" hidden></div>
+
+  <h2>Script <span class="muted">(read-only)</span></h2>
+  <div id="script" class="script"></div>
+
+  <section id="questions" hidden>
+    <h2>Questions Report</h2>
+    <h3>Answerable</h3><ul id="q-yes"></ul>
+    <h3>Unanswerable</h3><ul id="q-no"></ul>
+  </section>
+
+  <section id="revise">
+    <h2>Revise</h2>
+    <p class="sub">Type feedback, or record or upload it and we'll transcribe it into the box first.</p>
+    <label for="feedback" class="lbl">Feedback / notes</label>
+    <textarea id="feedback" rows="4" placeholder="e.g. Make the opening shorter, Host 1 sounds too formal, expand section 3…"></textarea>
+    <div class="row">
+      <button class="primary" id="revise-btn">Revise</button>
+      <button id="mic-btn">Record voice feedback</button>
+      <label class="drop btn-drop" id="voice-drop">
+        <span class="drop-inner" id="voice-name">Upload audio…</span>
+        <input type="file" id="voice-file" accept="audio/*,video/mp4,.mp4,.m4a">
+      </label>
+      <span class="muted" id="mic-status"></span>
+    </div>
+  </section>
+</main>
+<script type="module">
+import { renderNav } from "./js/nav.js";
+import { getJobStatus, getScript, getTimeline, getQuestions, revise, finishJob, transcribe } from "./js/api.js";
+import { wireDrop, startRecording } from "./js/ui.js";
+
+renderNav("result.html");
+const audio = document.getElementById("audio");
+const player = document.getElementById("player");
+const playBtn = document.getElementById("play-btn");
+const seek = document.getElementById("seek");
+const curT = document.getElementById("cur");
+const durT = document.getElementById("dur");
+const scriptEl = document.getElementById("script");
+const errorEl = document.getElementById("error");
+const feedback = document.getElementById("feedback");
+const micBtn = document.getElementById("mic-btn");
+const micStatus = document.getElementById("mic-status");
+const questionsEl = document.getElementById("questions");
+const voiceFile = document.getElementById("voice-file");
+const reviseBtn = document.getElementById("revise-btn");
+wireDrop(voiceFile, document.getElementById("voice-name"), "Upload audio…");
+
+const turns = [];
+let timeline = [];
+
+function fmt(ms) {
+  const s = Math.floor(ms / 1000);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
+function currentTurn(t) {
+  const ms = t * 1000;
+  return turns.find((t2) => ms >= t2.start_ms && ms < t2.end_ms);
+}
+
+// --- custom audio player ---
+const PLAY_SVG = `<svg viewBox="0 0 24 24" width="18" height="18"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>`;
+const PAUSE_SVG = `<svg viewBox="0 0 24 24" width="18" height="18"><rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor"/></svg>`;
+function syncPlay() {
+  playBtn.innerHTML = audio.paused ? PLAY_SVG : PAUSE_SVG;
+  player.classList.toggle("playing", !audio.paused);
+  document.querySelectorAll(".eq").forEach((e) => e.classList.toggle("playing", !audio.paused));
+}
+playBtn.addEventListener("click", async () => {
+  if (audio.paused) await audio.play();
+  else audio.pause();
+});
+audio.addEventListener("loadedmetadata", () => { seek.max = audio.duration; durT.textContent = fmt(audio.duration * 1000); });
+audio.addEventListener("timeupdate", () => {
+  seek.value = audio.currentTime;
+  curT.textContent = fmt(audio.currentTime * 1000);
+  highlight(audio.currentTime);
+});
+audio.addEventListener("play", syncPlay);
+audio.addEventListener("pause", syncPlay);
+seek.addEventListener("input", () => { audio.currentTime = seek.value; });
+syncPlay();
+
+// --- synced read-only script ---
+function renderScript() {
+  scriptEl.replaceChildren();
+  turns.forEach((t) => {
+    const div = document.createElement("div");
+    div.className = "turn";
+    div.dataset.turnId = t.turn_id;
+    div.innerHTML =
+      `<div class="turn-head"><span class="chip ${t.speaker.replace(/\s+/g, "-")}">${t.speaker}</span>` +
+      `<span class="muted">${fmt(t.start_ms)}</span></div><div class="text">${t.text}</div>`;
+    div.addEventListener("click", () => { audio.currentTime = t.start_ms / 1000; audio.play(); });
+    scriptEl.appendChild(div);
+    t.el = div;
+  });
+}
+
+function highlight(t) {
+  const cur = currentTurn(t);
+  turns.forEach((x) => x.el.classList.remove("current"));
+  if (cur) {
+    cur.el.classList.add("current");
+    cur.el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }
+}
+
+function renderQuestions(report) {
+  if (!report || (!report.answerable?.length && !report.unanswerable?.length)) return;
+  const qYes = document.getElementById("q-yes");
+  const qNo = document.getElementById("q-no");
+  qYes.replaceChildren(...report.answerable.map((q) => Object.assign(document.createElement("li"), { textContent: `${q.question_number ?? ""} ${q.question}`.trim() })));
+  qNo.replaceChildren(...report.unanswerable.map((q) => Object.assign(document.createElement("li"), { textContent: `${q.question_number ?? ""} ${q.question}`.trim() })));
+  questionsEl.hidden = false;
+}
+
+(async () => {
+  const st = await getJobStatus();
+  if (!st.ok || st.body.status !== "completed") {
+    errorEl.textContent = "No completed podcast. Generate one first.";
+    errorEl.hidden = false;
+    return;
+  }
+  const [scr, tl] = await Promise.all([getScript(), getTimeline()]);
+  if (!tl.ok) { errorEl.textContent = "Timeline not available."; errorEl.hidden = false; return; }
+  timeline = tl.body;
+  (scr.body || []).forEach((t) => {
+    const scriptId = parseInt(t.turn_id, 10);
+    const time = timeline.find((x) => parseInt(x.turn_id, 10) === scriptId);
+    turns.push({ ...t, start_ms: time?.start_ms ?? 0, end_ms: time?.end_ms ?? 0 });
+  });
+  renderScript();
+  const q = await getQuestions();
+  renderQuestions(q.body);
+})();
+
+reviseBtn.addEventListener("click", async () => {
+  const text = feedback.value.trim();
+  if (!text) { errorEl.textContent = "Write some feedback first."; errorEl.hidden = false; return; }
+  const r = await revise(text);
+  if (r.ok) window.location.href = "progress.html";
+  else { errorEl.textContent = r.body?.detail || "Revise failed."; errorEl.hidden = false; }
+});
+
+document.getElementById("newpod").addEventListener("click", async (e) => {
+  e.preventDefault();
+  await finishJob();
+  window.location.href = "index.html";
+});
+
+// --- voice feedback: record or upload → transcribe → fill textarea ---
+let rec = null;
+micBtn.addEventListener("click", async () => {
+  if (rec) {
+    rec.stop();
+    const file = await rec.file();
+    rec = null;
+    micBtn.textContent = "Record voice feedback";
+    micStatus.textContent = "Transcribing…";
+    const r = await transcribe(file);
+    feedback.value = r.ok ? r.body.transcript : `(transcribe failed: ${r.body?.detail || r.status})`;
+    micStatus.textContent = "";
+    return;
+  }
+  try {
+    rec = await startRecording((s) => micStatus.textContent = s);
+    micBtn.textContent = "Stop recording";
+  } catch (e) {
+    micStatus.textContent = `Mic unavailable: ${e.message}`;
+  }
+});
+
+voiceFile.addEventListener("change", async () => {
+  const f = voiceFile.files[0];
+  if (!f) return;
+  micStatus.textContent = "Transcribing…";
+  const r = await transcribe(f);
+  feedback.value = r.ok ? r.body.transcript : `(transcribe failed: ${r.body?.detail || r.status})`;
+  micStatus.textContent = "";
+  voiceFile.value = "";
+});
+</script>
+</body>
+</html>

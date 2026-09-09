@@ -104,6 +104,41 @@ def test_script_serves_json(tmp_path):
     job_queue._current_job = None
 
 
+def test_timeline_404_without_file(tmp_path):
+    job_queue._current_job = _job(tmp_path, status="completed")
+    client = TestClient(app)
+    assert client.get("/api/job/timeline").status_code == 404
+    job_queue._current_job = None
+
+
+def test_timeline_serves_timeline(tmp_path):
+    job = _job(tmp_path, status="completed")
+    (tmp_path / "timeline.json").write_text('[{"turn_id": 1, "start_ms": 0, "end_ms": 100}]', encoding="utf-8")
+    job_queue._current_job = job
+    client = TestClient(app)
+    r = client.get("/api/job/timeline")
+    assert r.status_code == 200
+    assert r.json()[0]["turn_id"] == 1
+    job_queue._current_job = None
+
+
+def test_template_endpoint(tmp_path, monkeypatch):
+    monkeypatch.setattr("src.api.routes.generate._TEMPLATE_DIR", tmp_path)
+    (tmp_path / "bodhan.yaml").write_text("host1:\n  voice: Parth\n", encoding="utf-8")
+    client = TestClient(app)
+    r = client.get("/api/tts/template?mode=bodhan")
+    assert r.status_code == 200
+    assert r.json()["host1"]["voice"] == "Parth"
+    assert client.get("/api/tts/template?mode=nope").status_code == 404
+
+
+def test_static_serves_index():
+    client = TestClient(app)
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "Podcast Studio" in r.text
+
+
 def test_questions_404_without_report(tmp_path):
     job_queue._current_job = _job(tmp_path, status="completed")
     client = TestClient(app)
@@ -123,12 +158,15 @@ def test_questions_serves_report(tmp_path):
     job_queue._current_job = None
 
 
-def test_finish_refuses_while_running(tmp_path):
+def test_finish_terminates_if_running(tmp_path):
     job_queue._current_job = _job(tmp_path, status="running")
     client = TestClient(app)
-    r = client.post("/api/job/finish")
-    assert r.status_code == 400
-    job_queue._current_job = None
+    with patch("src.api.job_queue.get_model_manager_instance") as mm, \
+         patch("src.api.job_queue.shutil.rmtree"):
+        r = client.post("/api/job/finish")
+    assert r.status_code == 200
+    assert r.json() == {"status": "terminated_and_cleaned"}
+    assert job_queue.get_current_job() is None
 
 
 def test_finish_cleans_completed(tmp_path):
@@ -142,15 +180,16 @@ def test_finish_cleans_completed(tmp_path):
     assert job_queue.get_current_job() is None
 
 
-def test_terminate_sets_cancel_flag(tmp_path):
+def test_terminate_finishes_immediately(tmp_path):
     job = _job(tmp_path, status="running")
     job_queue._current_job = job
     client = TestClient(app)
-    r = client.post("/api/job/terminate")
+    with patch("src.api.job_queue.get_model_manager_instance") as mm, \
+         patch("src.api.job_queue.shutil.rmtree"):
+        r = client.post("/api/job/terminate")
     assert r.status_code == 200
-    assert job.cancel_requested is True
-    assert r.json()["status"] == "terminating"
-    job_queue._current_job = None
+    assert r.json()["status"] == "terminated"
+    assert job_queue.get_current_job() is None
 
 
 def test_terminate_refuses_when_idle():

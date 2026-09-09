@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 from typing import Optional
 
+import yaml
 from fastapi import APIRouter, Body, File, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 
@@ -10,6 +11,18 @@ from src.api import job_queue
 router = APIRouter()
 
 VALID_TTS_MODES = {"bodhan", "custom_voice", "voice_design"}
+
+_TEMPLATE_DIR = Path(__file__).resolve().parents[3] / "src" / "tts_requirements"
+
+
+@router.get("/api/tts/template")
+async def get_template(mode: str):
+    if mode not in VALID_TTS_MODES:
+        raise HTTPException(status_code=404, detail=f"Unknown TTS mode: {mode}")
+    path = _TEMPLATE_DIR / f"{mode}.yaml"
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail=f"template not found: {mode}")
+    return JSONResponse(yaml.safe_load(path.read_text(encoding="utf-8")))
 
 
 @router.post("/api/job/{mode}")

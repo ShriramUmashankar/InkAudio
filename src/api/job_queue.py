@@ -1,7 +1,9 @@
 import asyncio
+import gc
 import json
 import os
 import shutil
+import torch
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -220,6 +222,12 @@ def _process_job_sync(job: JobRecord):
             "progress": 50 + (idx / len(turns)) * 35,
         })
 
+    # Release model reference after TTS loop to free GPU VRAM
+    del model
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
     _check_cancel(job)
     _emit_sse(job, "stage_complete", {"stage": "tts", "progress": 85})
     _emit_sse(job, "stage_start", {"stage": "stitch", "progress": 85})
@@ -264,6 +272,11 @@ def _process_revision_sync(job: JobRecord, settings, mm):
             _check_cancel(job)
             set_determinism(settings.tts.seed)
             _synth_one(model, edit, settings, template)
+        # Release model reference after revision TTS
+        del model
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
         stitch(settings)
 
     _emit_sse(job, "revision_complete", {"progress": 90})

@@ -1,5 +1,8 @@
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from src.api.routes.generate import router
 from src.api.routes.status import router as status_router
@@ -22,6 +25,10 @@ app.include_router(revise_router)
 app.include_router(router)
 app.include_router(status_router)
 app.include_router(transcribe_router)
+
+_web = Path(__file__).resolve().parents[2] / "web"
+if _web.is_dir():
+    app.mount("/", StaticFiles(directory=str(_web), html=True), name="web")
 
 
 @app.on_event("shutdown")

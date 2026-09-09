@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Podcast Studio — Generate</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div id="nav"></div>
+<main class="card">
+  <div class="hero">
+    <div class="eq" id="hero-eq"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    <h1>Turn any PDF into a podcast</h1>
+    <p class="sub">Drop in your document, pick the voices, and let the AI hosts do the rest.</p>
+  </div>
+
+  <div class="alert" id="error" hidden></div>
+
+  <div class="field">
+    <label for="content" class="lbl">Content PDF <span class="req">*</span></label>
+    <div class="drop">
+      <input type="file" id="content" accept=".pdf,application/pdf" required>
+      <span class="drop-inner" id="content-name">Select or drop your content PDF</span>
+    </div>
+  </div>
+
+  <div class="field">
+    <label for="questions" class="lbl">Questions PDF <span class="muted">(optional)</span></label>
+    <div class="drop">
+      <input type="file" id="questions" accept=".pdf,application/pdf">
+      <span class="drop-inner" id="questions-name">Select or drop a questions PDF</span>
+    </div>
+  </div>
+
+  <div class="field">
+    <label class="lbl">TTS Engine</label>
+    <div class="modes" id="modes">
+      <label><input type="radio" name="mode" value="bodhan" checked><span>Bodhan AI</span></label>
+      <label><input type="radio" name="mode" value="custom_voice"><span>Qwen Custom Voice</span></label>
+      <label><input type="radio" name="mode" value="voice_design"><span>Qwen Voice Design</span></label>
+    </div>
+  </div>
+
+  <section id="hosts"></section>
+
+  <details class="advanced">
+    <summary>Advanced</summary>
+    <div class="field">
+      <label class="lbl" for="max_loops">Max critic loops</label>
+      <input type="number" id="max_loops" value="3" min="1" max="10">
+    </div>
+  </details>
+
+  <button class="primary cta" id="submit"><span>Generate podcast</span></button>
+</main>
+<script type="module">
+import { renderNav } from "./js/nav.js";
+import { startJob, getTemplate } from "./js/api.js";
+import { wireDrop, customSelect } from "./js/ui.js";
+import { BODHAN_VOICES, QWEN_SPEAKERS, VOICE_DESIGN_DIMS, VOICE_DESIGN_NOTE, BODHAN_REF_URL } from "./js/voices.js";
+
+renderNav("index.html");
+wireDrop(document.getElementById("content"), document.getElementById("content-name"), "Select or drop your content PDF");
+wireDrop(document.getElementById("questions"), document.getElementById("questions-name"), "Select or drop a questions PDF");
+const hostsEl = document.getElementById("hosts");
+const errorEl = document.getElementById("error");
+const submitBtn = document.getElementById("submit");
+
+function voiceDesignGuide() {
+  const el = document.createElement("section");
+  el.className = "card note dims";
+  el.innerHTML =
+    `<p class="muted"><strong>Describe the voice using these seven dimensions:</strong></p>` +
+    `<ul>${VOICE_DESIGN_DIMS.map(([k, v]) => `<li><strong>${k}</strong> — ${v}</li>`).join("")}</ul>` +
+    `<p class="muted">${VOICE_DESIGN_NOTE}</p>`;
+  return el;
+}
+
+function hostSection(host, cfg, mode, idx) {
+  const el = document.createElement("section");
+  el.className = "host";
+  const g = (inner, cls = "") => `<div class="field ${cls}">${inner}</div>`;
+  if (mode === "bodhan") {
+    el.innerHTML =
+      `<h3>${host.label}</h3>` +
+      g(`<label class="lbl">Voice</label><div class="cs-drop" data-cs="voice"></div>`);
+    const voiceOpts = BODHAN_VOICES.map((v) => ({ value: v.name, label: v.name }));
+    el.querySelector('[data-cs="voice"]').replaceWith(customSelect({ id: `${host.id}-voice`, options: voiceOpts, value: cfg.voice }));
+    if (idx === 0) {
+      const ref = document.createElement("p");
+      ref.className = "muted";
+      ref.innerHTML = `Voice reference: <a href="${BODHAN_REF_URL}" target="_blank" rel="noopener">Bodhan TTS API docs</a>`;
+      el.appendChild(ref);
+    }
+  } else if (mode === "custom_voice") {
+    el.innerHTML =
+      `<h3>${host.label}</h3>` +
+      g(`<label class="lbl">Speaker</label><div class="cs-drop" data-cs="speaker"></div>`) +
+      g(`<label class="lbl">Instruction <span class="muted">(optional)</span></label>` +
+        `<textarea id="${host.id}-instruct" class="instruct" rows="4" placeholder="e.g. calm, conversational documentary narration, measured pace…">${cfg.instruct || ""}</textarea>`, "wide");
+    const spkOpts = QWEN_SPEAKERS.map((s) => ({ value: s.name, label: `${s.name} — ${s.desc}` }));
+    el.querySelector('[data-cs="speaker"]').replaceWith(customSelect({ id: `${host.id}-speaker`, options: spkOpts, value: cfg.speaker, placeholder: "Select a speaker…" }));
+  } else if (mode === "voice_design") {
+    el.innerHTML =
+      `<h3>${host.label}</h3>` +
+      g(`<label class="lbl">Voice description</label>` +
+        `<textarea id="${host.id}-instruct" class="instruct" rows="5" maxlength="2048" placeholder="Describe a voice — e.g. mature male voice, audiobook narrator, calm pace…">${cfg.instruct || ""}</textarea>`, "wide") +
+      `<p class="muted">Current fallback config: <code>${cfg.instruct || ""}</code></p>`;
+  }
+  return el;
+}
+
+function currentMode() {
+  const r = document.querySelector('input[name="mode"]:checked');
+  return r ? r.value : "bodhan";
+}
+
+async function rebuildHosts() {
+  const mode = currentMode();
+  const tpl = (await getTemplate(mode)).body || {};
+  const labels = { host1: "Host 1", host2: "Host 2" };
+  const parts = [];
+  if (mode === "voice_design") parts.push(voiceDesignGuide());
+  parts.push(...["host1", "host2"].map((h, i) => hostSection(
+    { id: h, label: labels[h] },
+    tpl[h] || {}, mode, i
+  )));
+  hostsEl.replaceChildren(...parts);
+}
+
+document.querySelectorAll('input[name="mode"]').forEach((r) => r.addEventListener("change", rebuildHosts));
+
+function collectConfig(mode) {
+  const cfg = { max_loops: parseInt(document.getElementById("max_loops").value || "3", 10) };
+  for (const h of ["host1", "host2"]) {
+    const hc = {};
+    if (mode === "bodhan") {
+      hc.voice = document.getElementById(`${h}-voice`).value.trim();
+    } else if (mode === "custom_voice") {
+      hc.speaker = document.getElementById(`${h}-speaker`).value.trim();
+      const instruct = document.getElementById(`${h}-instruct`).value.trim();
+      if (instruct) hc.instruct = instruct;
+    } else if (mode === "voice_design") {
+      hc.instruct = document.getElementById(`${h}-instruct`).value.trim();
+    }
+    cfg[h] = hc;
+  }
+  return cfg;
+}
+
+submitBtn.addEventListener("click", async () => {
+  const content = document.getElementById("content").files[0];
+  if (!content) { errorEl.textContent = "Content PDF is required."; errorEl.hidden = false; return; }
+  const questions = document.getElementById("questions").files[0];
+  const mode = currentMode();
+  submitBtn.disabled = true;
+  errorEl.hidden = true;
+  try {
+    const res = await startJob(mode, content, questions, collectConfig(mode));
+    if (res.ok) {
+      window.location.href = "progress.html";
+    } else {
+      errorEl.textContent = res.status === 409
+        ? "A generation is already in progress. Check the Progress page."
+        : (res.body?.detail || `Request failed (HTTP ${res.status})`);
+      errorEl.hidden = false;
+      submitBtn.disabled = false;
+    }
+  } catch (e) {
+    errorEl.textContent = String(e);
+    errorEl.hidden = false;
+    submitBtn.disabled = false;
+  }
+});
+
+rebuildHosts();
+</script>
+</body>
+</html>

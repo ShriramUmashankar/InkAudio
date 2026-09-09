@@ -1,3 +1,4 @@
+import gc
 import torch
 from dataclasses import replace
 
@@ -28,6 +29,7 @@ class ModelManager:
             del self._models[mode]
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
+                gc.collect()
             if self._current_mode == mode:
                 self._current_mode = None
 
@@ -35,6 +37,7 @@ class ModelManager:
         self._models.clear()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
+            gc.collect()
         self._current_mode = None
 
     @property

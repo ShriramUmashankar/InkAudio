@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Podcast Studio — Transcribe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div id="nav"></div>
+<main class="card">
+  <div class="hero small">
+    <div class="eq" id="hero-eq"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    <h1>Transcribe Audio</h1>
+    <p class="sub">Upload an audio or video file (WAV, MP3, FLAC, OGG, MP4…) or record it, and get the transcript.</p>
+  </div>
+
+  <div class="field">
+    <label class="lbl">Audio file</label>
+    <div class="drop">
+      <input type="file" id="file" accept="audio/*,video/mp4,.mp4,.m4a">
+      <span class="drop-inner" id="file-name">Select or drop an audio file</span>
+    </div>
+  </div>
+  <div class="row">
+    <button class="primary" id="go">Transcribe</button>
+    <button id="mic-btn">Record voice</button>
+    <span class="muted" id="mic-status"></span>
+  </div>
+  <div class="alert" id="error" hidden></div>
+  <p class="muted" id="status"></p>
+</main>
+
+<section class="card out-card" id="out" hidden>
+  <div class="out-head">
+    <div class="eq" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    <span class="out-title">Transcript</span>
+    <button class="copy-btn" id="copy" hidden aria-label="Copy transcript" title="Copy">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+    </button>
+  </div>
+  <div class="transcript" id="out-text"></div>
+</section>
+<script type="module">
+import { renderNav } from "./js/nav.js";
+import { transcribe } from "./js/api.js";
+import { wireDrop, startRecording } from "./js/ui.js";
+
+renderNav("transcribe.html");
+const fileEl = document.getElementById("file");
+wireDrop(fileEl, document.getElementById("file-name"), "Select or drop an audio file");
+const goBtn = document.getElementById("go");
+const statusEl = document.getElementById("status");
+const errorEl = document.getElementById("error");
+const out = document.getElementById("out");
+const outText = document.getElementById("out-text");
+const copyBtn = document.getElementById("copy");
+const micBtn = document.getElementById("mic-btn");
+const micStatus = document.getElementById("mic-status");
+
+function showTranscript(text) {
+  statusEl.textContent = "";
+  micStatus.textContent = "";
+  out.hidden = false;
+  outText.textContent = text;
+  copyBtn.hidden = false;
+  out.scrollIntoView({ block: "nearest", behavior: "smooth" });
+}
+
+async function runTranscribe(file) {
+  goBtn.disabled = true;
+  errorEl.hidden = true;
+  statusEl.textContent = "Transcribing (first run loads the model, this can be slow)…";
+  const r = await transcribe(file);
+  goBtn.disabled = false;
+  if (r.ok) showTranscript(r.body.transcript);
+  else {
+    statusEl.textContent = "";
+    errorEl.textContent = r.body?.detail || `Transcribe failed (HTTP ${r.status})`;
+    errorEl.hidden = false;
+  }
+}
+
+goBtn.addEventListener("click", () => {
+  const f = fileEl.files[0];
+  if (!f) { errorEl.textContent = "Choose an audio file first."; errorEl.hidden = false; return; }
+  runTranscribe(f);
+});
+
+let rec = null;
+micBtn.addEventListener("click", async () => {
+  if (rec) {
+    rec.stop();
+    const file = await rec.file();
+    rec = null;
+    micBtn.textContent = "Record voice";
+    runTranscribe(file);
+    return;
+  }
+  try {
+    rec = await startRecording((s) => micStatus.textContent = s);
+    micBtn.textContent = "Stop recording";
+  } catch (e) {
+    micStatus.textContent = `Mic unavailable: ${e.message}`;
+  }
+});
+
+const COPY_ICON = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>';
+const CHECK_ICON = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>';
+copyBtn.addEventListener("click", async () => {
+  await navigator.clipboard.writeText(outText.textContent);
+  copyBtn.classList.add("copied");
+  copyBtn.innerHTML = CHECK_ICON;
+  setTimeout(() => {
+    copyBtn.classList.remove("copied");
+    copyBtn.innerHTML = COPY_ICON;
+  }, 1200);
+});
+</script>
+</body>
+</html>

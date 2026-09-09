@@ -1,3 +1,4 @@
+import json
 import re
 from glob import glob
 from pathlib import Path
@@ -23,11 +24,24 @@ def stitch(settings: Settings) -> str | None:
     print(f"[stitch] stitching {len(files)} files in order")
     master: AudioSegment | None = None
     gap = AudioSegment.silent(duration=settings.pipeline.silence_ms)
+    timeline = []
+    cursor = 0
     for f in files:
         seg = AudioSegment.from_wav(f)
+        stem = Path(f).stem
+        start = cursor
+        timeline.append({
+            "turn_id": _turn_id(f),
+            "speaker": stem.split("_", 1)[1] if "_" in stem else "",
+            "start_ms": start,
+            "end_ms": start + len(seg),
+        })
+        cursor = start + len(seg) + settings.pipeline.silence_ms
         master = seg if master is None else master + gap + seg
 
     out = audio_dir / "final_podcast.mp3"
     master.export(str(out), format="mp3")
+    (audio_dir / "timeline.json").write_text(
+        json.dumps(timeline, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"[stitch] wrote {out}")
     return str(out)

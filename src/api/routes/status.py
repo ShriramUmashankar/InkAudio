@@ -47,6 +47,17 @@ async def get_script():
     return FileResponse(path, media_type="application/json")
 
 
+@router.get("/api/job/timeline")
+async def get_timeline():
+    job = job_queue.get_current_job()
+    if job is None:
+        raise HTTPException(status_code=404, detail="no job")
+    path = Path(job.temp_dir) / "timeline.json"
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="timeline not ready")
+    return JSONResponse(json.loads(path.read_text(encoding="utf-8")))
+
+
 @router.get("/api/job/questions")
 async def get_questions():
     job = job_queue.get_current_job()
@@ -81,7 +92,7 @@ async def job_events():
                 yield f"data: {payload}\n\n"
             yield "event: done\ndata: {}\n\n"
         finally:
-            job._sse_listeners[:] = [l for l, _ in job._sse_listeners if l is not listener]
+            job._sse_listeners[:] = [item for item in job._sse_listeners if item[0] is not listener]
 
     return StreamingResponse(
         event_generator(),
