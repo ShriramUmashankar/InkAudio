@@ -1,5 +1,6 @@
 from fastapi import APIRouter, File, UploadFile, HTTPException, Body
 from fastapi.responses import JSONResponse
+from pathlib import Path as P
 from typing import Optional
 import json
 import os
@@ -22,28 +23,36 @@ async def generate_job(
     if mode not in VALID_TTS_MODES:
         raise HTTPException(status_code=404, detail=f"Unknown TTS mode: {mode}")
 
-    if not content_pdf or content_pdf.filename == "":
+    if not content_pdf or not content_pdf.filename:
+        raise HTTPException(status_code=400, detail="content_pdf is required")
+    safe_name = P(content_pdf.filename).name
+    if not safe_name:
         raise HTTPException(status_code=400, detail="content_pdf is required")
 
     content_dir = "Content"
     os.makedirs(content_dir, exist_ok=True)
     os.makedirs("Audio", exist_ok=True)
 
-    content_pdf_path = os.path.join(content_dir, f"{content_pdf.filename}")
+    content_pdf_path = os.path.join(content_dir, safe_name)
     with open(content_pdf_path, "wb") as f:
         content = await content_pdf.read()
         f.write(content)
 
     questions_pdf_path = None
     if questions_pdf and questions_pdf.filename:
-        questions_pdf_path = os.path.join(content_dir, f"{questions_pdf.filename}")
-        with open(questions_pdf_path, "wb") as f:
-            q_content = await questions_pdf.read()
-            f.write(q_content)
+        questions_safe_name = P(questions_pdf.filename).name
+        if questions_safe_name:
+            questions_pdf_path = os.path.join(content_dir, questions_safe_name)
+            with open(questions_pdf_path, "wb") as f:
+                q_content = await questions_pdf.read()
+                f.write(q_content)
 
     merged_config = {}
     if config:
-        merged_config = json.loads(config)
+        try:
+            merged_config = json.loads(config)
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=400, detail="Invalid config JSON")
 
     worker = job_queue.get_worker()
     job_id = worker.add_job(
