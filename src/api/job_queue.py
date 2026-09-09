@@ -145,8 +145,8 @@ class JobWorker:
         self._emit_sse(job, "stage_complete", {"stage": "stitch", "progress": 100})
 
         job.result = self._result_payload(turns)
-        job.status = JobStatus.COMPLETED.value
         self._emit_sse(job, "complete", job.result)
+        job.status = JobStatus.COMPLETED.value
 
     def _process_revision_sync(self, job: JobRecord, settings, mm):
         from pathlib import Path as _Path
@@ -181,8 +181,8 @@ class JobWorker:
 
         self._emit_sse(job, "revision_complete", {"progress": 90})
         job.result = self._result_payload(updated)
-        job.status = JobStatus.COMPLETED.value
         self._emit_sse(job, "complete", job.result)
+        job.status = JobStatus.COMPLETED.value
 
     @staticmethod
     def _result_payload(turns):
@@ -202,9 +202,9 @@ class JobWorker:
 
     def _emit_sse(self, job: JobRecord, event_type: str, data: Dict[str, Any]):
         payload = json.dumps({"event": event_type, "data": json.dumps(data)})
-        for listener in list(job._sse_listeners):
+        for listener, loop in list(job._sse_listeners):
             try:
-                listener.put_nowait(payload)
+                loop.call_soon_threadsafe(listener.put_nowait, payload)
             except Exception:
                 pass
 

@@ -46,9 +46,9 @@ async def job_events(job_id: str):
         raise HTTPException(status_code=404, detail="Job not found")
 
     async def event_generator() -> AsyncIterator[str]:
+        loop = asyncio.get_running_loop()
         listener = asyncio.Queue()
-        if listener not in job._sse_listeners:
-            job._sse_listeners.append(listener)
+        job._sse_listeners.append((listener, loop))
         try:
             while job.status not in ("completed", "failed"):
                 try:
@@ -65,8 +65,7 @@ async def job_events(job_id: str):
                 yield f"data: {payload}\n\n"
             yield "event: done\ndata: {}\n\n"
         finally:
-            if listener in job._sse_listeners:
-                job._sse_listeners.remove(listener)
+            job._sse_listeners[:] = [l for l, _ in job._sse_listeners if l is not listener]
 
     return StreamingResponse(
         event_generator(),
