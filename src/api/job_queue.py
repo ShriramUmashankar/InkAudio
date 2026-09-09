@@ -7,9 +7,9 @@ from typing import Optional, Dict, Any, List
 from enum import Enum
 
 from src.config import load_settings
-from src.api.model_manager import ModelManager
-from src.ingest import convert_pdf
-from src.script_gen import generate_script
+from src.api.model_manager import get_model_manager, ModelManager
+from src.ingest import convert_pdf, convert_questions_pdf
+from src.script_gen import revise_script, generate_script, _renumber
 from src.stitch import stitch
 
 
@@ -47,7 +47,7 @@ _worker_instance: Optional["JobWorker"] = None
 def get_model_manager_instance() -> ModelManager:
     global _model_manager
     if _model_manager is None:
-        _model_manager = ModelManager()
+        _model_manager = get_model_manager()
     return _model_manager
 
 
@@ -78,12 +78,9 @@ class JobWorker:
     async def _process_job(self, job: JobRecord):
         settings = load_settings()
         mm = get_model_manager_instance()
-
-        from src.ingest import convert_questions_pdf, md_path_for
         from src.tts import synthesize_all, set_determinism
         from src.graph import build_graph, run_section
         from src.llm_client import LLMClient
-        from src.script_gen import _renumber
         from pathlib import Path as _Path
 
         set_determinism(settings.tts.seed)
@@ -158,22 +155,6 @@ class JobWorker:
             except Exception:
                 pass
         job._sse_listeners = [l for l in job._sse_listeners if not l._queue.empty()]
-
-    async def _run_sse_server(self, job: JobRecord):
-        import asyncio
-        queue = asyncio.Queue()
-        job._sse_listeners.append(queue)
-        try:
-            while job.status not in ("completed", "failed"):
-                msg = await asyncio.wait_for(queue.get(), timeout=1.0)
-                yield msg
-        except asyncio.TimeoutError:
-            pass
-        finally:
-            try:
-                job._sse_listeners.remove(queue)
-            except ValueError:
-                pass
 
     def add_job(self, tts_mode: str, content_pdf_path: str, questions_pdf_path: Optional[str] = None, config: Dict[str, Any] = None) -> str:
         if config is None:
