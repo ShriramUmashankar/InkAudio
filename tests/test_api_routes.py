@@ -140,3 +140,29 @@ def test_revision_on_failed_job():
         mock_queue.return_value = [mock_job]
         response = client.post("/api/jobs/failed-job/revise", json={"feedback": "test"})
     assert response.status_code == 400
+
+
+def test_finish_job():
+    client = TestClient(app)
+    with patch("src.api.job_queue.get_job_queue") as mock_queue, \
+         patch("src.api.model_manager.get_model_manager") as mock_mm:
+        mock_job = MagicMock()
+        mock_job.job_id = "test-job"
+        mock_job.tts_mode = "bodhan"
+        mock_queue.return_value = [mock_job]
+        mock_mm_instance = MagicMock()
+        mock_mm_instance.unload_all.return_value = None
+        mock_mm.return_value = mock_mm_instance
+        response = client.post("/api/jobs/test-job/finish")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "cleaned_up"
+    assert data["model_unloaded"] is True
+
+
+def test_finish_nonexistent_job():
+    client = TestClient(app)
+    with patch("src.api.job_queue.get_job_queue") as mock_queue:
+        mock_queue.return_value = []
+        response = client.post("/api/jobs/nonexistent/finish")
+    assert response.status_code == 404
