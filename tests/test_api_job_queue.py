@@ -69,3 +69,36 @@ def test_worker_process_bodhan_job(mock_settings, mock_model_mgr):
         import asyncio
         asyncio.get_event_loop().run_until_complete(asyncio.sleep(0.1))
         assert len(job_queue) == 0
+
+
+def test_process_job_sync_sets_tts_mode_from_job_config():
+    import asyncio
+    import os
+    import tempfile
+    from src.api.job_queue import JobRecord, get_worker
+
+    settings_mock = MagicMock()
+    settings_mock.tts.mode = "voice_design"
+    settings_mock.tts.seed = 42
+    tmp = tempfile.mkdtemp()
+    settings_mock.pipeline.content_dir = tmp
+    settings_mock.pipeline.audio_dir = tmp
+    fd, md_path = tempfile.mkstemp(suffix=".md", dir=tmp)
+    os.write(fd, b"# content")
+    os.close(fd)
+
+    job = JobRecord(job_id="rr", tts_mode="bodhan", content_pdf_path="/tmp/a.pdf", config={})
+    worker = get_worker()
+
+    with patch("src.api.job_queue.load_settings", return_value=settings_mock), \
+         patch("src.api.job_queue.convert_pdf", return_value=md_path), \
+         patch("src.api.job_queue.run_section", return_value=[{"turn_id": "0001", "speaker": "Host 1", "text": "hi"}]), \
+         patch("src.api.job_queue.stitch"), \
+         patch("src.api.job_queue.LLMClient"), \
+         patch("src.tts._load_template", return_value={}), \
+         patch("src.tts._synth_one"), \
+         patch("src.api.job_queue.get_model_manager_instance", return_value=MagicMock()):
+        worker._process_job_sync(job)
+
+    assert settings_mock.tts.mode == "bodhan"
+    assert job.status == "completed"

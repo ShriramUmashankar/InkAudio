@@ -1,4 +1,5 @@
 import json
+import os
 from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
 from src.api.main import app
@@ -109,6 +110,7 @@ def test_sse_events_stream():
     with patch("src.api.job_queue.get_job_queue") as mock_queue:
         mock_job = MagicMock()
         mock_job.job_id = "test-job"
+        mock_job.status = "completed"
         mock_job._sse_listeners = []
         mock_queue.return_value = [mock_job]
         response = client.get("/api/jobs/test-job/events")
@@ -118,21 +120,26 @@ def test_sse_events_stream():
 
 def test_revision_on_job():
     client = TestClient(app)
-    with patch("src.api.job_queue.get_job_queue") as mock_queue:
+    with patch("src.api.job_queue.get_job_queue") as mock_queue, \
+         patch("src.api.job_queue.get_worker") as mock_worker:
         mock_job = MagicMock()
         mock_job.job_id = "test-job"
         mock_job.tts_mode = "bodhan"
         mock_job.status = "completed"
+        mock_job.content_pdf_path = "/tmp/test.pdf"
+        mock_job.questions_pdf_path = None
+        mock_job.config = {}
         mock_queue.return_value = [mock_job]
-        with patch("src.api.routes.revise.revise_script"):
-            response = client.post(
-                "/api/jobs/test-job/revise",
-                json={"feedback": "Speak more slowly"},
-            )
+        mock_worker.return_value.add_job.return_value = "rev-123"
+        response = client.post(
+            "/api/jobs/test-job/revise",
+            json={"feedback": "Speak more slowly"},
+        )
     assert response.status_code == 202
     data = response.json()
-    assert data["job_id"] == "test-job"
-    assert data["status"] == "completed"
+    assert data["job_id"] == "rev-123"
+    assert data["status"] == "queued"
+    assert data["tts_mode"] == "bodhan"
 
 
 def test_revision_on_nonexistent_job():
@@ -161,16 +168,53 @@ def test_finish_job():
          patch("src.api.model_manager.get_model_manager") as mock_mm:
         mock_job = MagicMock()
         mock_job.job_id = "test-job"
-        mock_job.tts_mode = "bodhan"
-        mock_queue.return_value = [mock_job]
+        mock_job.tts_mode = "custom_voice"
+        pending = MagicMock()
+        pending.job_id = "pending-job"
+        mock_queue.return_value = [mock_job, pending]
         mock_mm_instance = MagicMock()
-        mock_mm_instance.unload_all.return_value = None
         mock_mm.return_value = mock_mm_instance
         response = client.post("/api/jobs/test-job/finish")
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "cleaned_up"
     assert data["model_unloaded"] is True
+    assert not mock_mm_instance.unload_all.called
+    mock_mm_instance.unload.assert_called_once_with("custom_voice")
+    assert len(mock_queue.return_value) == 2
+
+
+def test_finish_bodhan_has_no_model_to_unload():
+    client = TestClient(app)
+    with patch("src.api.job_queue.get_job_queue") as mock_queue, \
+         patch("src.api.model_manager.get_model_manager") as mock_mm:
+        mock_job = MagicMock()
+        mock_job.job_id = "test-job"
+        mock_job.tts_mode = "bodhan"
+        mock_queue.return_value = [mock_job]
+        mock_mm.return_value = MagicMock()
+        response = client.post("/api/jobs/test-job/finish")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "cleaned_up"
+    assert data["model_unloaded"] is False
+
+
+def test_generate_sanitizes_upload_filename():
+    client = TestClient(app)
+    with patch("src.api.job_queue.get_worker") as mock_worker:
+        mock_worker.return_value.add_job.return_value = "job-1"
+        response = client.post(
+            "/api/jobs/bodhan",
+            files={"content_pdf": ("../../etc/passwd", b"pdf_content", "application/pdf")},
+        )
+    assert response.status_code == 202
+    call = mock_worker.return_value.add_job.call_args
+    content_pdf_path = call.kwargs["content_pdf_path"]
+    assert ".." not in content_pdf_path
+    assert os.path.basename(content_pdf_path) == "passwd"
+    if os.path.exists(content_pdf_path):
+        os.remove(content_pdf_path)
 
 
 def test_finish_nonexistent_job():
