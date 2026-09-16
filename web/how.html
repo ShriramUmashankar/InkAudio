@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Podcast Studio — How it works</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/how.css">
+</head>
+<body>
+<div id="nav"></div>
+<main class="card stage-card">
+  <div class="hero small">
+    <div class="eq" id="hero-eq"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    <h1>How it works</h1>
+    <p class="sub">An animated walkthrough of the pipeline: WAIT → generate → REVISE → back to WAIT.</p>
+  </div>
+
+  <div class="controls">
+    <button id="play">Pause</button>
+    <button id="prev" title="step back">‹</button>
+    <button id="next" title="step forward">›</button>
+    <button id="restart" title="restart">↻</button>
+    <label class="muted" style="display:inline-flex;align-items:center;gap:7px">Speed
+      <select id="speed">
+        <option value="0.5">0.5×</option>
+        <option value="1" selected>1×</option>
+        <option value="1.5">1.5×</option>
+        <option value="2">2×</option>
+      </select>
+    </label>
+    <input type="range" id="scrub" min="0" max="100" step="1" value="0">
+  </div>
+
+  <svg id="graph" viewBox="0 0 1260 1070" role="img" aria-label="Podcast pipeline graph"></svg>
+  <p id="caption">…</p>
+
+  <div class="legend">
+    <span class="chip2"><i></i>idle</span>
+    <span class="chip2 i-start"><i></i>start</span>
+    <span class="chip2 i-active"><i></i>active</span>
+    <span class="chip2 i-done"><i></i>done</span>
+    <span class="chip2 i-rej"><i></i>rejected</span>
+    <span class="chip2 i-opt"><i></i>optional (questions lane)</span>
+    <span class="chip2 i-loop"><i></i>feedback loop</span>
+    <span class="chip2 i-verdict"><i></i>verdict (rejected / approved)</span>
+  </div>
+
+  <h2>Top loop</h2>
+  <p class="muted">Everything starts and ends at <strong>WAIT</strong> — the server idle, waiting for a PDF. Uploading one starts the
+  <strong>generate</strong> lane (top, green highlights). The blue-labelled lane across the bottom is the
+  <strong>revise</strong> path: feedback on a finished episode lands in <strong>EDITOR</strong>, gets critiqued, and only after approval are
+  edits merged, re-spoken and re-stitched — then the whole thing funnels back to <strong>WAIT</strong>.</p>
+  <p class="muted">The demo always runs the full story: ingest, the optional questions path, the writer/critic loop
+  (two rejections, then approval on the third attempt), TTS + stitching, and the revision lane.
+  The dashed <strong>QUESTIONS</strong>/<strong>EVALUATOR</strong> nodes just show that their lane is optional.</p>
+
+  <div class="nodeindex" id="index"></div>
+</main>
+<script type="module">
+import { renderNav } from "./js/nav.js";
+import { buildGraph } from "./js/pipeline-graph.js";
+renderNav("how.html");
+buildGraph();
+</script>
+</body>
+</html>

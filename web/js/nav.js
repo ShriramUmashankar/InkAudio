@@ -2,6 +2,7 @@ export function renderNav(active) {
   const nav = document.getElementById("nav");
   if (!nav) return;
   const pages = [
+    ["how.html", "How it works"],
     ["index.html", "Generate"],
     ["progress.html", "Progress"],
     ["result.html", "Result"],

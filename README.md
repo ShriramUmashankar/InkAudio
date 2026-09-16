@@ -1,75 +1,118 @@
-# Podcast Generation Pipeline — Project Summary
+# InkAudio
 
-## Overview
-Local PDF → Markdown → LangGraph Actor-Critic script → TTS → MP3. Single-user localhost tool with FastAPI backend + vanilla JS frontend. No build step, no queue, one job at a time.
+Drop a PDF. Get a podcast. Two AI hosts debate your document, sound natural, and produce a finished MP3.
 
-## Models & Requirements
+InkAudio is a local, CLI-first pipeline that turns any PDF into a two-host podcast episode. A LangGraph actor-critic loop iteratively refines the script, voices are synthesized per turn, and every segment is stitched into a single audio file.
 
-| Component | Model | Runs | Needs |
-|-----------|-------|------|-------|
-| **Script LLM** (Actor + Critic) | Gemini 2.5 Flash Lite (`gemini-2.5-flash-lite`) | Cloud API | `GEMINI_API_KEY` in `.env` (10 RPM free tier; client paces at ~6s/call) |
-| **TTS — Bodhan** | Indic-speak (45 Indian voices) | Cloud API | `BODHAN_API_KEY` in `config.yaml` → `tts.bodhan_api_key` |
-| **TTS — Qwen Custom Voice** | Qwen3-TTS 1.7B (9 preset speakers) | **Local** (4-bit quantized) | `models/download_models.py` fetches `Qwen/Qwen3-TTS` to `models/` |
-| **TTS — Qwen Voice Design** | Qwen3-TTS Voice Design 1.7B (text-to-voice) | **Local** (4-bit) | Same model dir, separate checkpoint |
-| **STT** | faster-whisper (default `base`) | Local (loads on demand) | `config.yaml` → `stt:` or env `STT_MODEL/DEVICE/COMPUTE_TYPE` |
+![Pipeline](docs/flowchart.svg)
 
-## Configuration
-- `config.yaml` — all non-secret settings (LLM endpoints, TTS voices, pipeline params)
-- `.env` — `GEMINI_API_KEY` (single key for both actor/critic)
-- `src/tts_requirements/*.yaml` — per-mode defaults (bodhan, custom_voice, voice_design)
+---
 
-## Pipeline Stages (CLI)
-```bash
-python -m src.pipeline --pdf Content/input.pdf
-# Stages: ingest → script → tts → stitch
-# Flags: --skip-ingest --skip-script --skip-stitch --no-tts --force-ingest --revise --feedback <file>
-```
+## Quickstart
 
-## API (FastAPI, `uvicorn src.api.main:app`)
-| Endpoint | Purpose |
-|----------|---------|
-| `POST /api/job/{mode}` | Start generation (`mode`: bodhan, custom_voice, voice_design) |
-| `GET /api/job` | Status polling |
-| `GET /api/job/events` | SSE progress stream |
-| `GET /api/job/timeline` | Per-turn timestamps for sync |
-| `GET /api/job/script` | Generated script JSON |
-| `GET /api/job/result` | Final MP3 |
-| `POST /api/job/revise` | Human feedback revision loop |
-| `POST /api/job/finish` | Cleanup + model unload |
-| `POST /api/job/terminate` | Cancel running job + unload |
-| `POST /api/transcribe` | STT (audio → transcript) |
-| `GET /api/tts/template?mode=` | Default TTS params |
-
-## Frontend Pages (served from `/`)
-- **Generate** (`/`) — PDF upload, TTS mode, voice pickers, custom dropdowns
-- **Progress** (`/progress.html`) — SSE stage stepper, shimmer bar, rotating dots, localStorage restore
-- **Result** (`/result.html`) — Custom audio player, synced script highlight, click-to-seek, revision UI, mic/voice feedback
-- **Transcribe** (`/transcribe.html`) — File upload + mic record → transcript with copy button
-
-## Revision Loop
-1. Write notes to `Content/feedback.txt`
-2. Run `python -m src.pipeline --revise`
-3. Editor LLM locates turns → Critic approves → re-synthesizes changed turns only → re-stitch
-
-**API voice feedback**: Record/upload → `POST /api/transcribe` → edit transcript → `POST /api/job/revise`
-
-## Key Invariants
-- Turn `speaker` = `"Host 1"` or `"Host 2"` exactly
-- `turn_id` = zero-padded global order (`0001`…)
-- Bodhan: Voice only (lang/style use template defaults)
-- Qwen Custom: Speaker dropdown + instruction textarea
-- Qwen Voice Design: 7-dimension guide + per-host description textarea
-
-## Run
 ```bash
 pip install -r requirements.txt
-cp .env.example .env   # add GEMINI_API_KEY
-python models/download_models.py   # fetch Qwen 1.7B checkpoints
-uvicorn src.api.main:app --reload
-# open http://localhost:8000
+cp .env.example .env           # add GEMINI_API_KEY
+python models/download_models.py  # fetch Qwen3-TTS checkpoints
+python -m src.pipeline --pdf Content/input.pdf
 ```
 
+That's it. The pipeline runs end-to-end: ingest → script → TTS → stitch → `Audio/final_podcast.mp3`.
+
+---
+
+## How It Works
+
+The pipeline has four stages and one feedback loop:
+
+| Stage | What happens |
+|-------|-------------|
+| **Ingest** | PDF → Markdown (via docling). Also optionally parses a questions PDF. |
+| **Script** | A LangGraph `StateGraph` runs Actor → Critic → Router. The Actor drafts turns as JSON, the Critic checks them against the source, and the Router loops back with feedback until approved (max 3 rounds). Answerable questions from the questions PDF are injected as context. |
+| **TTS** | Each turn is synthesized to its own WAV — Bodhan API for multilingual, Qwen3-TTS for English (custom voice or voice design modes). |
+| **Stitch** | All WAVs are concatenated with configurable silence gaps into `final_podcast.mp3`. |
+
+**Revision flow:** After generation, write feedback notes to `Content/feedback.txt` and re-run with `--revise`. An Editor identifies which turns to change, a Critic validates the edits against your notes, and only the changed turns are re-synthesized and re-stitched.
+
+---
+
+## Usage
+
+```
+python -m src.pipeline [options]
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--pdf <path>` | From `config.yaml` | Input content PDF |
+| `--skip-ingest` | off | Skip PDF → Markdown conversion |
+| `--skip-script` | off | Skip script generation (re-TTS existing script) |
+| `--skip-stitch` | off | Skip final MP3 stitching |
+| `--no-tts` | off | Skip TTS entirely (script only) |
+| `--force-ingest` | off | Re-convert PDF even if Markdown exists |
+| `--revise` | off | Run revision loop from `Content/feedback.txt` |
+| `--feedback <path>` | `Content/feedback.txt` | Custom feedback file for `--revise` |
+| `--config <path>` | `config.yaml` | Custom config file |
+
+---
+
+## Configuration
+
+- **`config.yaml`** — All non-secret settings: LLM endpoints, TTS mode, voice config, pipeline parameters.
+- **`.env`** — API keys (`GEMINI_API_KEY` for both actor and critic LLMs, `BODHAN_TTS` for Bodhan TTS).
+- **`src/tts_requirements/*.yaml`** — Per-mode voice templates (`bodhan.yaml`, `custom_voice.yaml`, `voice_design.yaml`).
+
+### TTS Modes
+
+Set `tts.mode` in `config.yaml`:
+
+- **`bodhan`** — Cloud API, 45+ Indian voices. Each host gets a voice name from the template.
+- **`custom_voice`** — Local Qwen3-TTS 1.7B (4-bit quantized), 9 preset speakers with style instructions.
+- **`voice_design`** — Local Qwen3-TTS 1.7B, natural-language voice descriptions per host.
+
+---
+
+## Project Structure
+
+```
+Content/          # Input PDFs, generated Markdown, script.json, LLM logs
+Audio/            # Per-turn WAVs and final_podcast.mp3
+models/           # Local Qwen3-TTS checkpoints (download via models/download_models.py)
+src/              # Pipeline modules (see src/README.md)
+docs/             # Flowchart and design docs
+web/              # Web UI (HTML/CSS/JS)
+```
+
+---
+
+## Revision
+
+```bash
+# After a generation, write feedback
+echo "Make host 2 more energetic in turns 3-5" > Content/feedback.txt
+
+# Re-run with revision
+python -m src.pipeline --revise
+
+# Or use a different feedback file
+python -m src.pipeline --revise --feedback my_notes.txt
+```
+
+The revision graph (Editor → Critic → Router) compares original vs updated script against your notes, loops until approved, then re-synthesizes only the changed turns and re-stitches.
+
+---
+
 ## Tests
+
 ```bash
 ~/.local/bin/pytest tests/ -q   # 61 tests, mocked LLM/TTS
 ```
+
+---
+
+## Requirements
+
+- Python 3.10+
+- CUDA-capable GPU recommended for local Qwen3-TTS (falls back to CPU)
+- `GEMINI_API_KEY` for LLM calls
+- `BODHAN_TTS` API key if using Bodhan mode
