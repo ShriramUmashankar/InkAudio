@@ -1,0 +1,153 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1260 1070" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <linearGradient id="gact" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#7c5cff"/>
+      <stop offset="1" stop-color="#22d3ee"/>
+    </linearGradient>
+    <linearGradient id="gedge" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#7c5cff"/>
+      <stop offset="1" stop-color="#22d3ee"/>
+    </linearGradient>
+  </defs>
+
+  <style>
+    .edge { stroke: rgba(255,255,255,0.18); stroke-width: 2; fill: none; }
+    .edge.loop { stroke-dasharray: 8 7; }
+    .edge.optional { stroke-dasharray: 5 5; opacity: 0.7; }
+    .node .box { fill: rgba(255,255,255,0.03); stroke: rgba(255,255,255,0.18); stroke-width: 1.8; }
+    .node.optional .box { stroke-dasharray: 7 5; opacity: 0.9; }
+    .node.start .box { fill: rgba(245,184,71,0.14); stroke: #f5b847; stroke-width: 2.2; }
+    .node .t-title { fill: #fff; font-size: 17px; font-weight: 600; text-anchor: middle; dominant-baseline: central; }
+    .node .t-sub { fill: #93a0b5; font-size: 13px; text-anchor: middle; dominant-baseline: central; }
+    .elabel { pointer-events: none; }
+    .elabel-bg { fill: rgba(34,211,238,0.12); stroke: rgba(34,211,238,0.55); stroke-width: 1.2; }
+    .elabel-txt { fill: #7decef; font-size: 13.5px; font-weight: 600; text-anchor: middle; dominant-baseline: central; }
+  </style>
+
+  <!-- Edges -->
+  <path id="e_wait_ingest" class="edge" d="M145 370 H355"/>
+  <path id="e_ingest_q" class="edge optional" d="M372 334 C 368 280, 388 220, 405 185"/>
+  <path id="e_q_eval" class="edge optional" d="M445 130 H645"/>
+  <path id="e_eval_actor" class="edge optional" d="M660 192 V308"/>
+  <path id="e_actor_critic" class="edge" d="M675 370 H895"/>
+  <path id="e_critic_router" class="edge" d="M866 411 C 810 460, 745 520, 704 559"/>
+  <path id="e_router_actor" class="edge loop" d="M660 538 C 548 538, 548 432, 660 432"/>
+  <path id="e_router_script" class="edge" d="M715 575 C 880 500, 1000 410, 1076 345"/>
+  <path id="e_script_tts" class="edge" d="M1130 432 V538"/>
+  <path id="e_tts_stitch" class="edge" d="M1130 662 V728"/>
+  <path id="e_stitch_editor" class="edge" d="M1115 790 H925"/>
+  <path id="e_editor_revcritic" class="edge" d="M862 827 C 800 870, 740 915, 709 943"/>
+  <path id="e_revcritic_revrouter" class="edge" d="M645 980 H425"/>
+  <path id="e_revrouter_editor" class="edge loop" d="M467 957 C 650 860, 820 830, 853 813"/>
+  <path id="e_revrouter_merge" class="edge" d="M366 940 C 340 905, 280 848, 250 823"/>
+  <path id="e_merge_home" class="edge" d="M188 758 C 175 690, 150 560, 138 430"/>
+
+  <!-- Edge Labels -->
+  <g class="elabel">
+    <rect class="elabel-bg" x="225" y="362" width="45" height="28" rx="14"/>
+    <text class="elabel-txt" x="250" y="376">PDF</text>
+
+    <rect class="elabel-bg" x="355" y="221" width="105" height="28" rx="14"/>
+    <text class="elabel-txt" x="407" y="235">questions (opt)</text>
+
+    <rect class="elabel-bg" x="760" y="362" width="50" height="28" rx="14"/>
+    <text class="elabel-txt" x="785" y="376">draft</text>
+
+    <rect class="elabel-bg" x="1090" y="471" width="65" height="28" rx="14"/>
+    <text class="elabel-txt" x="1122" y="485">turns</text>
+
+    <rect class="elabel-bg" x="1090" y="681" width="45" height="28" rx="14"/>
+    <text class="elabel-txt" x="1112" y="695">wavs</text>
+
+    <rect class="elabel-bg" x="985" y="848" width="120" height="28" rx="14"/>
+    <text class="elabel-txt" x="1045" y="862">notes / feedback</text>
+
+    <rect class="elabel-bg" x="130" y="576" width="95" height="28" rx="14"/>
+    <text class="elabel-txt" x="177" y="590">back to WAIT</text>
+  </g>
+
+  <!-- Nodes -->
+  <g id="n_wait" class="node start">
+    <circle class="box" cx="130" cy="370" r="62"/>
+    <text class="t-title" x="130" y="364">WAIT / START</text>
+    <text class="t-sub" x="130" y="386">waits for a content PDF</text>
+  </g>
+
+  <g id="n_ingest" class="node">
+    <circle class="box" cx="370" cy="370" r="62"/>
+    <text class="t-title" x="370" y="364">INGEST</text>
+    <text class="t-sub" x="370" y="386">PDF → Markdown</text>
+  </g>
+
+  <g id="n_questions" class="node optional">
+    <circle class="box" cx="430" cy="130" r="62"/>
+    <text class="t-title" x="430" y="124">QUESTIONS</text>
+    <text class="t-sub" x="430" y="146">optional PDF → Markdown</text>
+  </g>
+
+  <g id="n_evaluator" class="node optional">
+    <circle class="box" cx="660" cy="130" r="62"/>
+    <text class="t-title" x="660" y="124">EVALUATOR</text>
+    <text class="t-sub" x="660" y="146">answerable vs unanswerable</text>
+  </g>
+
+  <g id="n_actor" class="node">
+    <circle class="box" cx="660" cy="370" r="62"/>
+    <text class="t-title" x="660" y="364">ACTOR</text>
+    <text class="t-sub" x="660" y="386">drafts script as JSON turns</text>
+  </g>
+
+  <g id="n_critic" class="node">
+    <circle class="box" cx="910" cy="370" r="62"/>
+    <text class="t-title" x="910" y="364">CRITIC</text>
+    <text class="t-sub" x="910" y="386">checks draft vs content</text>
+  </g>
+
+  <g id="n_router" class="node">
+    <circle class="box" cx="660" cy="600" r="62"/>
+    <text class="t-title" x="660" y="594">ROUTER</text>
+    <text class="t-sub" x="660" y="616">approved → next · else loop</text>
+  </g>
+
+  <g id="n_script" class="node">
+    <circle class="box" cx="1130" cy="370" r="62"/>
+    <text class="t-title" x="1130" y="364">SCRIPT</text>
+    <text class="t-sub" x="1130" y="386">renumber 0001…</text>
+  </g>
+
+  <g id="n_tts" class="node">
+    <circle class="box" cx="1130" cy="600" r="62"/>
+    <text class="t-title" x="1130" y="594">TTS</text>
+    <text class="t-sub" x="1130" y="616">every turn → own wav</text>
+  </g>
+
+  <g id="n_stitch" class="node">
+    <circle class="box" cx="1130" cy="790" r="62"/>
+    <text class="t-title" x="1130" y="784">STITCH</text>
+    <text class="t-sub" x="1130" y="806">wavs joined → final MP3</text>
+  </g>
+
+  <g id="n_editor" class="node">
+    <circle class="box" cx="910" cy="790" r="62"/>
+    <text class="t-title" x="910" y="784">EDITOR</text>
+    <text class="t-sub" x="910" y="806">finds turns to change</text>
+  </g>
+
+  <g id="n_revcritic" class="node">
+    <circle class="box" cx="660" cy="980" r="62"/>
+    <text class="t-title" x="660" y="974">REV·CRITIC</text>
+    <text class="t-sub" x="660" y="996">original vs updated vs notes</text>
+  </g>
+
+  <g id="n_revrouter" class="node">
+    <circle class="box" cx="410" cy="980" r="62"/>
+    <text class="t-title" x="410" y="974">ROUTER</text>
+    <text class="t-sub" x="410" y="996">approved → merge · else edit</text>
+  </g>
+
+  <g id="n_merge" class="node">
+    <circle class="box" cx="200" cy="790" r="62"/>
+    <text class="t-title" x="200" y="784">MERGE</text>
+    <text class="t-sub" x="200" y="806">re-speak · re-stitch</text>
+  </g>
+</svg>

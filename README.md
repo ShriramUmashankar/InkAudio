@@ -4,7 +4,7 @@ Drop a PDF. Get a podcast. Two AI hosts debate your document, sound natural, and
 
 InkAudio is a local, CLI-first pipeline that turns any PDF into a two-host podcast episode. A LangGraph actor-critic loop iteratively refines the script, voices are synthesized per turn, and every segment is stitched into a single audio file.
 
-![Pipeline](docs/flowchart.svg)
+![Pipeline](flowchart.svg)
 
 ---
 
