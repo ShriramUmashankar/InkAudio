@@ -11,18 +11,24 @@ from src.api import job_queue
 router = APIRouter()
 
 
-@router.get("/api/job")
-async def job_status():
-    job = job_queue.get_current_job()
-    if job is None:
-        return {"status": "idle"}
+def _snapshot(job):
     return {
         "status": job.status,
         "tts_mode": job.tts_mode,
+        "podcast_language": job.config.get("podcast_language", "en"),
         "created_at": job.created_at,
         "completed_at": job.completed_at,
         "error": job.error,
+        "stage": job.stage,
+        "progress": job.progress,
+        "cancel_requested": job.cancel_requested,
     }
+
+
+@router.get("/api/job")
+async def job_status():
+    job = job_queue.get_current_job()
+    return _snapshot(job) if job else {"status": "idle"}
 
 
 @router.get("/api/job/result")
@@ -77,6 +83,8 @@ async def job_events():
         listener = asyncio.Queue()
         job._sse_listeners.append((listener, loop))
         try:
+            snapshot = json.dumps({"event": "snapshot", "data": json.dumps(_snapshot(job))})
+            yield f"data: {snapshot}\n\n"
             while job.status == "running":
                 try:
                     payload = await asyncio.wait_for(listener.get(), timeout=15)
@@ -90,6 +98,8 @@ async def job_events():
                 except asyncio.QueueEmpty:
                     break
                 yield f"data: {payload}\n\n"
+            snapshot = json.dumps({"event": "snapshot", "data": json.dumps(_snapshot(job))})
+            yield f"data: {snapshot}\n\n"
             yield "event: done\ndata: {}\n\n"
         finally:
             job._sse_listeners[:] = [item for item in job._sse_listeners if item[0] is not listener]

@@ -12,9 +12,11 @@ tts:
   # mode options:
   #   custom_voice  — preset speakers + style/instruct (uses src/tts_requirements/custom_voice.yaml)
   #   voice_design  — natural-language voice description (uses src/tts_requirements/voice_design.yaml)
-  #   bodhan        — Bodhan API, per-host voice + lang + optional style (uses src/tts_requirements/bodhan.yaml)
+  #   bodhan        — shared podcast language, per-host voice + optional style
   mode: "bodhan"
   bodhan_api_key_env: "BODHAN_TTS"
+  bodhan_translation_api_key_env: "BODHAN_TRANSLATION"
+  podcast_language: "ta"  # Bodhan only: en, hi, ta, te, bn, mr, etc.
   local_model_path: "models/Qwen3-TTS-12Hz-1.7B-CustomVoice"
   hf_repo_id: "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice"
   voice_design_model_path: "models/Qwen3-TTS-12Hz-1.7B-VoiceDesign"
@@ -29,11 +31,11 @@ stt:
   model: "models/faster-whisper-small.en"
 
 pipeline:
-  pdf_path: "Content/indigo_plantations.pdf"
+  pdf_path: "Content/magnet_chapter.pdf"
   content_dir: "Content"
   audio_dir: "Audio"
   max_loops: 3
   silence_ms: 300
   heading_level: 2
-  questions_pdf_path: "Content/questions.pdf"
+  questions_pdf_path: "Content/magnets_questions.pdf"
   log_path: "Content/llm_log.md"

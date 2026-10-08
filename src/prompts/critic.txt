@@ -17,7 +17,7 @@ Return ONLY a JSON object: {"is_approved": true|false, "feedback": "..."}.
 
 2. Structure & Length:
    - Monologues: Any single turn is too long for an engaging podcast (more than 3-4 lines).
-   - Missing Hook/Intro: It starts with generic pleasantries instead of a "Cold Open" hook, or fails to introduce the hosts (Amit and Kavya) near the beginning.
+   - Missing Hook/Intro: It starts with generic pleasantries instead of a "Cold Open" hook, or fails to introduce the hosts (Jos and Ema) near the beginning.
    - Missing Landing: It ends abruptly without Host 2 summarizing the core takeaway and a proper sign-off.
 
 3. Pronunciation formatting (Crucial for TTS):

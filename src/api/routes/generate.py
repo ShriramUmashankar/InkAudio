@@ -7,12 +7,23 @@ from fastapi import APIRouter, Body, File, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 
 from src.api import job_queue
+from src.translation import LANGUAGES, validate_language_config
 
 router = APIRouter()
 
 VALID_TTS_MODES = {"bodhan", "custom_voice", "voice_design"}
 
 _TEMPLATE_DIR = Path(__file__).resolve().parents[3] / "src" / "tts_requirements"
+
+
+def _default_language():
+    config = yaml.safe_load((_TEMPLATE_DIR.parents[1] / "config.yaml").read_text(encoding="utf-8"))
+    return config.get("tts", {}).get("podcast_language", "en")
+
+
+@router.get("/api/tts/languages")
+async def get_languages():
+    return {"languages": LANGUAGES, "default": _default_language()}
 
 
 @router.get("/api/tts/template")
@@ -43,6 +54,13 @@ async def generate_job(
             merged_config = json.loads(config)
         except json.JSONDecodeError:
             raise HTTPException(status_code=400, detail="Invalid config JSON")
+
+    try:
+        language = validate_language_config(mode, merged_config, _default_language())
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    if mode == "bodhan":
+        merged_config["podcast_language"] = language
 
     try:
         job = job_queue.create_job(mode, merged_config)

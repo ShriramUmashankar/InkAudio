@@ -43,6 +43,14 @@
     </div>
   </div>
 
+  <div class="field" id="language-field">
+    <label class="lbl" for="podcast-language">Podcast language</label>
+    <select id="podcast-language" aria-describedby="language-hint" disabled>
+      <option value="en">English</option>
+    </select>
+    <p class="muted" id="language-hint">Both hosts speak the selected language, with natural English mixing for Indic languages.</p>
+  </div>
+
   <section id="hosts"></section>
 
   <details class="advanced">
@@ -57,9 +65,9 @@
 </main>
 <script type="module">
 import { renderNav } from "./js/nav.js";
-import { startJob, getTemplate } from "./js/api.js";
+import { startJob, getTemplate, getLanguages } from "./js/api.js";
 import { wireDrop, customSelect } from "./js/ui.js";
-import { BODHAN_VOICES, QWEN_SPEAKERS, VOICE_DESIGN_DIMS, VOICE_DESIGN_NOTE, BODHAN_REF_URL } from "./js/voices.js";
+import { BODHAN_VOICES, BODHAN_LANGS, QWEN_SPEAKERS, VOICE_DESIGN_DIMS, VOICE_DESIGN_NOTE, BODHAN_REF_URL } from "./js/voices.js";
 
 renderNav("index.html");
 wireDrop(document.getElementById("content"), document.getElementById("content-name"), "Select or drop your content PDF");
@@ -67,6 +75,29 @@ wireDrop(document.getElementById("questions"), document.getElementById("question
 const hostsEl = document.getElementById("hosts");
 const errorEl = document.getElementById("error");
 const submitBtn = document.getElementById("submit");
+const languageField = document.getElementById("language-field");
+const languageSelect = document.getElementById("podcast-language");
+let bodhanVoices = null;
+let renderedMode = null;
+let renderVersion = 0;
+
+async function loadLanguages() {
+  try {
+    const result = await getLanguages();
+    if (!result.ok) throw new Error("Could not load podcast languages.");
+    languageSelect.replaceChildren(...Object.entries(result.body.languages).map(([code, name]) => {
+      const option = document.createElement("option");
+      option.value = code;
+      option.textContent = name;
+      return option;
+    }));
+    languageSelect.value = result.body.default;
+    languageSelect.disabled = false;
+  } catch (error) {
+    errorEl.textContent = error.message;
+    errorEl.hidden = false;
+  }
+}
 
 function voiceDesignGuide() {
   const el = document.createElement("section");
@@ -86,7 +117,8 @@ function hostSection(host, cfg, mode, idx) {
     el.innerHTML =
       `<h3>${host.label}</h3>` +
       g(`<label class="lbl">Voice</label><div class="cs-drop" data-cs="voice"></div>`);
-    const voiceOpts = BODHAN_VOICES.map((v) => ({ value: v.name, label: v.name }));
+    const languages = Object.fromEntries(BODHAN_LANGS);
+    const voiceOpts = BODHAN_VOICES.map((v) => ({ value: v.name, label: `${v.name} — ${languages[v.lang]}` }));
     el.querySelector('[data-cs="voice"]').replaceWith(customSelect({ id: `${host.id}-voice`, options: voiceOpts, value: cfg.voice }));
     if (idx === 0) {
       const ref = document.createElement("p");
@@ -117,9 +149,26 @@ function currentMode() {
   return r ? r.value : "bodhan";
 }
 
-async function rebuildHosts() {
+async function rebuildHosts(resetVoices = false) {
+  if (renderedMode === "bodhan") {
+    bodhanVoices = Object.fromEntries(["host1", "host2"].map(h => [h, document.getElementById(`${h}-voice`).value]));
+  }
+  if (resetVoices) bodhanVoices = null;
+  const version = ++renderVersion;
   const mode = currentMode();
+  languageField.hidden = mode !== "bodhan";
   const tpl = (await getTemplate(mode)).body || {};
+  if (version !== renderVersion) return;
+  if (mode === "bodhan") {
+    if (!bodhanVoices) {
+      const nativeVoices = BODHAN_VOICES.filter(v => v.lang === languageSelect.value);
+      bodhanVoices = {
+        host1: nativeVoices.find(v => v.mf === "male")?.name || tpl.host1?.voice,
+        host2: nativeVoices.find(v => v.mf === "female")?.name || tpl.host2?.voice,
+      };
+    }
+    for (const h of ["host1", "host2"]) tpl[h] = { ...tpl[h], voice: bodhanVoices[h] };
+  }
   const labels = { host1: "Host 1", host2: "Host 2" };
   const parts = [];
   if (mode === "voice_design") parts.push(voiceDesignGuide());
@@ -128,12 +177,15 @@ async function rebuildHosts() {
     tpl[h] || {}, mode, i
   )));
   hostsEl.replaceChildren(...parts);
+  renderedMode = mode;
 }
 
-document.querySelectorAll('input[name="mode"]').forEach((r) => r.addEventListener("change", rebuildHosts));
+document.querySelectorAll('input[name="mode"]').forEach((r) => r.addEventListener("change", () => rebuildHosts()));
+languageSelect.addEventListener("change", () => rebuildHosts(true));
 
 function collectConfig(mode) {
   const cfg = { max_loops: parseInt(document.getElementById("max_loops").value || "3", 10) };
+  if (mode === "bodhan") cfg.podcast_language = languageSelect.value;
   for (const h of ["host1", "host2"]) {
     const hc = {};
     if (mode === "bodhan") {
@@ -155,6 +207,11 @@ submitBtn.addEventListener("click", async () => {
   if (!content) { errorEl.textContent = "Content PDF is required."; errorEl.hidden = false; return; }
   const questions = document.getElementById("questions").files[0];
   const mode = currentMode();
+  if (mode === "bodhan" && languageSelect.disabled) {
+    errorEl.textContent = "Podcast languages are still loading. Reload if the connection failed.";
+    errorEl.hidden = false;
+    return;
+  }
   submitBtn.disabled = true;
   errorEl.hidden = true;
   try {
@@ -175,6 +232,7 @@ submitBtn.addEventListener("click", async () => {
   }
 });
 
+await loadLanguages();
 rebuildHosts();
 </script>
 </body>

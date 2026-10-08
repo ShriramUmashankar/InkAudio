@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Podcast Studio — Examples</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%237c5cff'/%3E%3Cpath d='M9 22V10m7 16V6m7 16V10' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600&family=Inter:wght@400;500;600;700&family=Noto+Sans+Tamil:wght@400;500&family=Noto+Sans+Devanagari:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/examples.css">
+</head>
+<body class="examples-page">
+<div id="nav"></div>
+<main class="examples-main">
+  <header class="examples-heading">
+    <p class="eyebrow">THE LISTENING ROOM</p>
+    <h1>A little knowledge.<br><span>A whole conversation.</span></h1>
+    <p>Press play. Meet the hosts. Hear a chapter come to life.</p>
+  </header>
+  <section class="studio" aria-label="Magnetism-Tamil podcast player">
+    <header class="episode-heading">
+      <div><span class="episode-tag" id="episode-tag">FEATURED EPISODE · தமிழ்</span><h2 id="episode-title">Magnetism-Tamil</h2><p id="episode-description">Invisible forces. A conversation that pulls you in.</p></div>
+      <span class="studio-status" id="studio-status" role="status">Loading episode</span>
+    </header>
+    <div class="stage">
+      <div class="host host-one" id="host-one"><div class="portrait"></div><div class="host-label"><span class="host-dot"></span><strong>Arun</strong><span>HOST 1</span></div></div>
+      <div class="frequency"><span class="frequency-label">ON THE SAME WAVELENGTH</span><canvas id="spectrum" width="480" height="160" aria-hidden="true"></canvas><span class="frequency-note" id="frequency-note">Two voices. One discovery.</span></div>
+      <div class="host host-two" id="host-two"><div class="portrait"></div><div class="host-label"><span class="host-dot"></span><strong>Anitha</strong><span>HOST 2</span></div></div>
+    </div>
+    <div class="caption-area" id="caption-area"><div id="caption"><span class="caption-speaker" id="caption-speaker">THE CONVERSATION STARTS HERE</span><p id="caption-text">A compass, two curious minds, and the invisible world of magnets.</p></div></div>
+    <div class="transport">
+      <button id="play-example" class="example-play" aria-label="Play Magnetism-Tamil" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></button>
+      <div class="seek-group"><div class="time-row"><span id="current-time">0:00</span><span id="duration">6:30</span></div><input type="range" id="example-seek" min="0" max="389.829" step="0.01" value="0" aria-label="Seek through Magnetism-Tamil" disabled></div>
+      <span class="transport-label">LISTEN &amp; FOLLOW ALONG</span>
+    </div>
+    <p class="episode-error" id="example-error" role="alert" hidden></p>
+    <audio id="example-audio" src="/podcast_examples/Magnetism-Tamil/final_podcast.mp3" preload="metadata"></audio>
+  </section>
+  <section class="library" aria-labelledby="library-title">
+    <div class="library-heading"><div><p class="eyebrow">EXPLORE THE COLLECTION</p><h2 id="library-title">Different voices. New perspectives.</h2></div><span>02 available / 04 episodes</span></div>
+    <div class="example-grid">
+      <button class="example-card selected" id="magnetism-card" data-example="magnetism" aria-pressed="true" aria-label="Play Magnetism-Tamil">
+        <span class="card-art magnet-art" aria-hidden="true"><svg viewBox="0 0 160 100"><path d="M46 60V40a34 34 0 0 1 68 0v20" fill="none" stroke="#aa91ff" stroke-width="18"/><path d="M46 58v22" stroke="#f18ba1" stroke-width="18"/><path d="M114 58v22" stroke="#65dbe5" stroke-width="18"/><path d="M58 85q22 14 44 0M57 91q23 15 46 0" fill="none" stroke="#aaa0da" stroke-width="1.5" opacity=".4"/><text x="46" y="74" fill="#25162a" text-anchor="middle" font-size="12" font-weight="700">N</text><text x="114" y="74" fill="#142733" text-anchor="middle" font-size="12" font-weight="700">S</text></svg></span>
+        <span class="card-details"><span class="card-kicker">SCIENCE · CLASS 6 · TAMIL</span><strong>Magnetism-Tamil</strong><span>6:30 · Two hosts · Bodhan</span></span><span class="card-action" aria-hidden="true">↗</span>
+      </button>
+      <button class="example-card" id="changes-card" data-example="changes" aria-pressed="false" aria-label="Play changes-around-us - Hindi">
+        <span class="card-art changes-art" aria-hidden="true"><svg viewBox="0 0 160 100"><path d="M32 47V28l17-10 17 10v19L49 57z" fill="#83cde3" fill-opacity=".18" stroke="#83cde3" stroke-width="2"/><path d="M32 28l17 10 17-10M49 38v19M49 18v20" fill="none" stroke="#83cde3" stroke-width="1.5"/><path d="M30 70q19-13 38 0-19 12-38 0" fill="#65dbe5" fill-opacity=".3"/><path d="M78 47h21m-7-6 7 6-7 6" fill="none" stroke="#b6a6e7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M118 78V46" stroke="#8ddbba" stroke-width="3" stroke-linecap="round"/><path d="M118 58q-20 0-19-22 20 0 19 22m0-10q0-23 22-22 0 23-22 22" fill="#8ddbba" fill-opacity=".2" stroke="#8ddbba" stroke-width="2"/></svg></span>
+        <span class="card-details"><span class="card-kicker">SCIENCE · CLASS 7 · HINDI</span><strong>changes-around-us - Hindi</strong><span>7:47 · Two hosts · Bodhan</span></span><span class="card-action" aria-hidden="true">↗</span>
+      </button>
+      <div class="example-card upcoming"><span class="card-art" aria-hidden="true">◉</span><span class="card-details"><span class="card-kicker">PRESET VOICES</span><strong>Custom Voice</strong><span>Coming soon</span></span></div>
+      <div class="example-card upcoming"><span class="card-art" aria-hidden="true">〰</span><span class="card-details"><span class="card-kicker">CRAFTED VOICES</span><strong>Voice Design</strong><span>Coming soon</span></span></div>
+    </div>
+  </section>
+  <footer class="examples-footer"><span>From the page to your headphones.</span><a href="index.html">Create your own podcast <span aria-hidden="true">↗</span></a></footer>
+</main>
+<script type="module" src="js/examples.js"></script>
+</body>
+</html>

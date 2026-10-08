@@ -30,34 +30,34 @@ class GraphState(TypedDict):
 
 
 def _build_user_prompt(
-    content_markdown: str, questions_context: str, feedback: str
+    content_markdown: str, questions_context: str, feedback: str, english_only: bool = False,
 ) -> str:
     base = f"CONTENT:\n<<<\n{content_markdown}\n>>>\n\n"
     if questions_context.strip():
         base += f"\nANSWERABLE QUESTIONS:\n<<<\n{questions_context}\n>>>\n\n"
-    base += "\nWrite the podcast script as a JSON array of turns."
+    language = " in English" if english_only else ""
+    base += f"\nWrite the podcast script{language} as a JSON array of turns."
     if feedback:
         base += f"\n\nPrevious draft was rejected. Fix this feedback:\n{feedback}"
     return base
 
 
-def build_graph(client: LLMClient, max_loops: int):
+def build_graph(client: LLMClient, max_loops: int, english_only: bool = False):
     def actor(state: GraphState) -> Dict:
         user = _build_user_prompt(
-            state["content_markdown"], state["questions_context"], state["feedback"]
+            state["content_markdown"], state["questions_context"], state["feedback"], english_only,
         )
+        if state["draft"]:
+            user += f"\n\nPREVIOUS DRAFT:\n{json.dumps(state['draft'], ensure_ascii=False)}"
         raw = client.chat(ACTOR_SYSTEM_PROMPT, user, node_label="actor")
         parsed = extract_json(raw)
         turns = validate_turns(parsed)
         if not turns:
             return {
-                **state,
-                "draft": state["draft"],
                 "loop_count": state["loop_count"] + 1,
                 "feedback": "Return ONLY a valid JSON array of {speaker,text} objects.",
             }
         return {
-            **state,
             "draft": turns,
             "loop_count": state["loop_count"] + 1,
             "feedback": "",
@@ -114,7 +114,7 @@ class RevisionState(TypedDict):
     critic_feedback: str
 
 
-def _merge_for_critic(script: List[Dict[str, str]], edits: List[Dict[str, str]]) -> List[Dict[str, str]]:
+def merge_edits(script: List[Dict[str, str]], edits: List[Dict[str, str]]) -> List[Dict[str, str]]:
     by_id = {t["turn_id"]: dict(t) for t in script}
     for e in edits:
         if e.get("turn_id") in by_id:
@@ -138,18 +138,25 @@ def _valid_edits(parsed: Any) -> List[Dict[str, str]]:
     return out
 
 
-def build_revision_graph(client: LLMClient, max_loops: int):
+def build_revision_graph(client: LLMClient, max_loops: int, english_only: bool = False):
     def editor(state: RevisionState) -> Dict:
         user = (
             f"USER NOTES:\n<<<\n{state['notes']}\n>>>\n\n"
             f"FULL SCRIPT:\n{json.dumps(state['script'], ensure_ascii=False)}"
         )
+        if english_only:
+            user += "\n\nKeep every revised turn in English, regardless of the feedback language."
+        if state["loop_count"]:
+            user += (
+                f"\n\nPREVIOUS PROPOSED EDITS:\n{json.dumps(state['edits'], ensure_ascii=False)}"
+                f"\n\nCRITIC FEEDBACK:\n{state['critic_feedback']}"
+            )
         raw = client.chat(REVISION_SYSTEM_PROMPT, user, node_label="editor")
         edits = _valid_edits(extract_json(raw))
         return {"edits": edits, "loop_count": state["loop_count"] + 1}
 
     def critic(state: RevisionState) -> Dict:
-        merged = _merge_for_critic(state["script"], state["edits"])
+        merged = merge_edits(state["script"], state["edits"])
         user = (
             f"ORIGINAL SCRIPT:\n<<<\n{json.dumps(state['script'], ensure_ascii=False)}\n>>>\n\n"
             f"UPDATED SCRIPT:\n<<<\n{json.dumps(merged, ensure_ascii=False)}\n>>>\n\n"
@@ -190,5 +197,3 @@ def run_revision(graph, turns: List[Dict[str, str]], notes: str) -> List[Dict[st
         }
     )
     return result["edits"]
-
-

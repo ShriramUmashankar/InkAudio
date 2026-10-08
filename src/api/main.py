@@ -26,6 +26,10 @@ app.include_router(router)
 app.include_router(status_router)
 app.include_router(transcribe_router)
 
+_examples = Path(__file__).resolve().parents[2] / "podcast_examples"
+if _examples.is_dir():
+    app.mount("/podcast_examples", StaticFiles(directory=str(_examples)), name="examples")
+
 _web = Path(__file__).resolve().parents[2] / "web"
 if _web.is_dir():
     app.mount("/", StaticFiles(directory=str(_web), html=True), name="web")

@@ -12,6 +12,7 @@ export function streamEvents(handlers) {
       fn(data);
     }
   };
-  es.addEventListener("done", () => es.close());
+  es.addEventListener("done", () => { es.close(); handlers.done?.(); });
+  es.onerror = () => handlers.error?.();
   return es;
 }

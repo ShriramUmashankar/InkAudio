@@ -229,6 +229,8 @@ input[type="text"]:focus, input[type="number"]:focus, textarea:focus {
   background: var(--grad); margin-right: 10px; flex-shrink: 0;
 }
 select option { background: #161b28; }
+#podcast-language { width: 100%; padding: 12px; border-radius: 8px; background: #161b28; color: inherit; border: 1px solid #445; font: inherit; }
+#language-field[hidden], .step[hidden] { display: none; }
 
 .modes { display: flex; gap: 10px; flex-wrap: wrap; }
 .modes label { position: relative; }

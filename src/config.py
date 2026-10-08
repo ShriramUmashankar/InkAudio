@@ -25,6 +25,8 @@ class TTSConfig:
     language: str
     seed: int
     bodhan_api_key: str
+    podcast_language: str = "en"
+    bodhan_translation_api_key: str = ""
 
 
 @dataclass
@@ -94,6 +96,8 @@ def load_settings(path: str = "config.yaml") -> Settings:
     bodhan_env = tts_raw.pop("bodhan_api_key_env", "BODHAN_TTS")
     bodhan_key = os.environ.get(bodhan_env, "")
     tts_raw["bodhan_api_key"] = bodhan_key
+    translation_env = tts_raw.pop("bodhan_translation_api_key_env", "BODHAN_TRANSLATION")
+    tts_raw["bodhan_translation_api_key"] = os.environ.get(translation_env, "")
     tts = TTSConfig(**tts_raw)
     pipeline = PipelineConfig(**raw["pipeline"])
     stt = _stt_from(raw.get("stt", {}))

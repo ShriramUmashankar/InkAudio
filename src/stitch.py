@@ -14,9 +14,15 @@ def _turn_id(path: str) -> int:
     return int(m.group(1)) if m else 0
 
 
-def stitch(settings: Settings) -> str | None:
+def stitch(settings: Settings, turns=None) -> str | None:
     audio_dir = Path(settings.pipeline.audio_dir)
-    files = sorted(glob(str(audio_dir / "*.wav")), key=_turn_id)
+    if turns is None:
+        files = sorted(glob(str(audio_dir / "*.wav")), key=_turn_id)
+    else:
+        files = [str(audio_dir / f"{t['turn_id']}_{t['speaker']}.wav") for t in turns]
+        for file in files:
+            if not Path(file).is_file():
+                raise FileNotFoundError(f"Expected podcast turn audio is missing: {file}")
     if not files:
         print("[stitch] no .wav files found, skipping")
         return None

@@ -4,6 +4,7 @@ from pathlib import Path
 from .config import load_settings
 from .ingest import convert_pdf, md_path_for
 from .script_gen import generate_script, regenerate_audio, revise_script
+from .translation import LANGUAGES, validate_language_config
 
 
 def main() -> None:
@@ -17,9 +18,14 @@ def main() -> None:
     p.add_argument("--revise", action="store_true", help="Revise existing script.json from feedback file")
     p.add_argument("--feedback", default="Content/feedback.txt", help="Feedback notes file for --revise")
     p.add_argument("--config", default="config.yaml")
+    p.add_argument("--language", choices=LANGUAGES, help="Whole-podcast language (Bodhan only)")
     args = p.parse_args()
 
     settings = load_settings(args.config)
+    overrides = {"podcast_language": args.language} if args.language is not None else {}
+    settings.tts.podcast_language = validate_language_config(
+        settings.tts.mode, overrides, settings.tts.podcast_language,
+    )
     if args.pdf:
         settings.pipeline.pdf_path = args.pdf
 

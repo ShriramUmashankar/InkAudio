@@ -6,6 +6,7 @@ export function renderNav(active) {
     ["index.html", "Generate"],
     ["progress.html", "Progress"],
     ["result.html", "Result"],
+    ["examples.html", "Examples"],
     ["transcribe.html", "Transcribe"],
   ];
   nav.innerHTML = `

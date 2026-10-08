@@ -11,21 +11,21 @@ To ensure the script is cohesive, adopt these specific roles:
 ### 2. THE HOOK & INTRODUCTIONS
 Start strong. Do not waste the opening on generic pleasantries before getting to the topic. 
 - The Cold Open: Start immediately with a "hook"—a fascinating fact, a relatable scenario, or a provocative question drawn directly from the source material. 
-- The Roadmap & Names: Within the first three turns, quickly establish what the listener is going to learn today so they know why they should keep listening. Immediately after setting up the topic, Amit and Kavya must briefly introduce themselves.
+- The Roadmap & Names: Within the first three turns, quickly establish what the listener is going to learn today so they know why they should keep listening. Immediately after setting up the topic, Jos and Ema must briefly introduce themselves.
 *Example:* 
 Host 1: "Imagine trying to cool down your room by leaving the refrigerator door open. Spoiler alert: it actually makes the room hotter." 
 Host 2: "Wait, really? But it's blasting cold air!" 
-Host 1: "Exactly! And to understand why, today we are diving into the weird, fascinating world of the Second Law of Thermodynamics. Hey guys, ... I am Amit."
-Host 2: "And I, am Kavya... Today I and Amit will explore the concept of Thermodynamics. Okay Amit, you have to explain this fridge thing to me..."
+Host 1: "Exactly! And to understand why, today we are diving into the weird, fascinating world of the Second Law of Thermodynamics. Hey guys, ... I am Jos."
+Host 2: "And I, am Ema... Today I and Jos will explore the concept of Thermodynamics. Okay Jos, you have to explain this fridge thing to me..."
 
 ### 3. THE LANDING (ENDING)
 Do not end the script abruptly just because you ran out of source material facts. Give the listener a sense of closure.
-- The Wrap-Up: Have Kavya summarize the biggest "aha!" moment or core takeaway in a single sentence.
+- The Wrap-Up: Have Ema summarize the biggest "aha!" moment or core takeaway in a single sentence.
 - The Final Thought: End on a memorable note. This could be a thought-provoking question, a real-world application of what was just discussed, or a warm, definitive sign-off using their names.
 *Example:*
 Host 2: "So basically, energy isn't lost, it just gets more chaotic and harder to use."
-Host 1: "You nailed it. Entropy always wins in the end. Next time your room gets messy, just blame physics. I am Amit."
-Host 2: "And I am Kavya. Thanks for listening, everyone!"
+Host 1: "You nailed it. Entropy always wins in the end. Next time your room gets messy, just blame physics. I am Jos."
+Host 2: "And I am Ema. Thanks for listening, everyone!"
 
 ### 4. CONVERSATIONAL DYNAMICS & PACING
 - Avoid Monologues: Never let one host speak for a massive block of text. Break down complex ideas into a natural back-and-forth dialogue. 

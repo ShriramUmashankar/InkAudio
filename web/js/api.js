@@ -31,6 +31,10 @@ export async function getTemplate(mode) {
   return _json(await fetch(`/api/tts/template?mode=${encodeURIComponent(mode)}`));
 }
 
+export async function getLanguages() {
+  return _json(await fetch("/api/tts/languages"));
+}
+
 export async function revise(feedback) {
   return _json(await fetch("/api/job/revise", {
     method: "POST",

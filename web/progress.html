@@ -20,7 +20,7 @@
   <p class="muted" id="pct">0%</p>
 
   <div class="stepper" id="stepper">
-    <span class="step" data-stage="ingest">Ingest</span><span class="step" data-stage="script_gen">Script</span><span class="step" data-stage="tts">TTS</span><span class="step" data-stage="stitch">Stitch</span>
+    <span class="step" data-stage="ingest">Ingest</span><span class="step" data-stage="script_gen">Script</span><span class="step" data-stage="translation" hidden>Translate</span><span class="step" data-stage="tts">TTS</span><span class="step" data-stage="stitch">Stitch</span>
   </div>
 
   <p class="muted" id="meta"></p>
@@ -43,34 +43,15 @@ const errorEl = document.getElementById("error");
 const termBtn = document.getElementById("terminate");
 const back = document.getElementById("back");
 
-const STAGES = ["ingest", "script_gen", "tts", "stitch"];
+const STAGES = ["ingest", "script_gen", "translation", "tts", "stitch"];
 
-const STORAGE_KEY = "podcast_progress";
+let events;
 
-function saveProgress(p, stage) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ progress: p, stage }));
-}
-
-function loadProgress() {
-  try {
-    const data = localStorage.getItem(STORAGE_KEY);
-    if (data) return JSON.parse(data);
-  } catch {}
-  return { progress: 0, stage: "ingest" };
-}
-
-function clearProgress() {
-  localStorage.removeItem(STORAGE_KEY);
-}
-
-let receivedFirstEvent = false;
-
-function setProgress(p) {
-  p = Math.max(0, Math.min(100, Math.round(p)));
-  if (!receivedFirstEvent || p >= parseInt(fill.style.width || "0", 10)) {
+function setProgress(p, reset = false) {
+  p = Math.max(0, Math.min(100, Math.round(Number(p) || 0)));
+  if (reset || p >= parseInt(fill.style.width || "0", 10)) {
     fill.style.width = p + "%";
     pct.textContent = p + "%";
-    receivedFirstEvent = true;
   }
 }
 
@@ -82,66 +63,77 @@ function setStage(stage) {
 }
 
 function setError(msg) {
+  events?.close();
   errorEl.textContent = msg;
   errorEl.hidden = false;
+  statusLine.textContent = "Generation stopped.";
   termBtn.hidden = true;
   back.hidden = false;
-  clearProgress();
-  stopDots();
 }
 
-function startDots(base = "Running") {
-  if (window._dotsTimer) return;
-  const dots = ["", ".", "..", "..."];
-  let i = 0;
-  window._dotsTimer = setInterval(() => {
-    statusLine.textContent = base + dots[i];
-    i = (i + 1) % dots.length;
-  }, 500);
-}
-
-function stopDots() {
-  if (window._dotsTimer) {
-    clearInterval(window._dotsTimer);
-    window._dotsTimer = null;
-  }
-}
-
-const run = (es) => {
-  streamEvents({
-    stage_start: (d) => { setStage(d.stage); setProgress(d.progress); statusLine.textContent = `Running: ${d.stage}`; saveProgress(d.progress, d.stage); startDots(`Running: ${d.stage}`); },
-    stage_complete: (d) => { setStage(d.stage); setProgress(d.progress); statusLine.textContent = `Done: ${d.stage}`; saveProgress(d.progress, d.stage); },
-    model_loading: (d) => { meta.textContent = `Loading model…`; startDots("Loading model"); },
-    turn_synthesized: (d) => { meta.textContent = `Synthesized ${d.turn_id} · ${d.speaker}`; setProgress(d.progress); saveProgress(d.progress, "tts"); },
-    revision_complete: (d) => { setProgress(d.progress); statusLine.textContent = "Revision applied — stitching…"; saveProgress(d.progress, "stitch"); },
-    complete: (d) => { clearProgress(); stopDots(); window.location.href = "result.html"; },
-    failed: (d) => { clearProgress(); stopDots(); setError(d.error || "Generation failed."); },
-    terminated: (d) => { clearProgress(); stopDots(); setError("Generation terminated."); },
-  });
-  return es;
-};
-
-(async () => {
-  const saved = loadProgress();
-  setProgress(saved.progress);
-  setStage(saved.stage);
-
-  const st = await getJobStatus();
-  if (st.body && (st.body.status === "completed" || st.body.status === "running")) {
-    statusLine.textContent = st.body.status === "running" ? "Running" : "Job finished.";
-    run();
-  } else if (st.body && st.body.status === "failed") {
-    clearProgress();
-    setError(st.body.error || "Generation failed.");
+function applyStatus(state) {
+  stepper.querySelector('[data-stage="translation"]').hidden = state.tts_mode !== "bodhan" || state.podcast_language === "en";
+  if (state.status === "completed") {
+    events?.close();
+    window.location.href = "result.html";
+  } else if (state.status === "failed" || state.status === "terminated") {
+    setError(state.error || (state.status === "terminated" ? "Generation terminated." : "Generation failed."));
+  } else if (state.status === "running") {
+    setProgress(state.progress, true);
+    setStage(state.stage);
+    statusLine.textContent = state.cancel_requested ? "Stopping generation — waiting for the current operation…" : `Running: ${state.stage || "starting"}`;
+    termBtn.disabled = !!state.cancel_requested;
   } else {
-    clearProgress();
     setError("No active job.");
   }
+}
+
+async function refreshStatus() {
+  try {
+    const response = await getJobStatus();
+    if (!response.ok) throw new Error("Could not check job status.");
+    applyStatus(response.body);
+    return response.body;
+  } catch {
+    statusLine.textContent = "Connection lost. Reload to reconnect to generation.";
+    return null;
+  }
+}
+
+function run() {
+  events = streamEvents({
+    snapshot: applyStatus,
+    stage_start: (d) => { setStage(d.stage); setProgress(d.progress); if (!termBtn.disabled) statusLine.textContent = `Running: ${d.stage}`; },
+    stage_complete: (d) => { setStage(d.stage); setProgress(d.progress); },
+    model_loading: () => { meta.textContent = "Loading model…"; },
+    turn_synthesized: (d) => { meta.textContent = `Synthesized ${d.turn_id} · ${d.speaker}`; setProgress(d.progress); },
+    translation_progress: (d) => { meta.textContent = `Translated ${d.completed_turns} / ${d.total_turns} turns`; setProgress(d.progress); },
+    revision_complete: (d) => { setProgress(d.progress); },
+    complete: () => { events?.close(); window.location.href = "result.html"; },
+    failed: (d) => setError(d.error || "Generation failed."),
+    terminated: () => setError("Generation terminated."),
+    done: refreshStatus,
+    error: refreshStatus,
+  });
+}
+
+(async () => {
+  const state = await refreshStatus();
+  if (state?.status === "running") run();
 })();
 
 termBtn.addEventListener("click", async () => {
-  const r = await terminateJob();
-  if (!r.ok) { errorEl.textContent = r.body?.detail || "Cannot terminate now."; errorEl.hidden = false; }
+  termBtn.disabled = true;
+  try {
+    const response = await terminateJob();
+    if (!response.ok) throw new Error(response.body?.detail || "Cannot terminate now.");
+    statusLine.textContent = "Stopping generation — waiting for the current operation…";
+    await refreshStatus();
+  } catch (error) {
+    termBtn.disabled = false;
+    errorEl.textContent = error.message;
+    errorEl.hidden = false;
+  }
 });
 </script>
 </body>

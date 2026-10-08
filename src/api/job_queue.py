@@ -13,8 +13,12 @@ from src.evaluator import evaluate_questions
 from src.graph import build_graph, build_revision_graph, run_revision, run_section
 from src.ingest import convert_pdf, convert_questions_pdf
 from src.llm_client import LLMClient
-from src.script_gen import _renumber, merge_edits
+from src.script_gen import (
+    _renumber, save_scripts, save_revision_scripts, load_script_pair, changed_turns,
+    validate_bodhan_settings,
+)
 from src.stitch import stitch
+from src.translation import validate_language_config
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 TEMP_ROOT = _REPO_ROOT / ".api_tmp"
@@ -42,6 +46,8 @@ class JobRecord:
     error: Optional[str] = None
     questions_report: Optional[Dict[str, Any]] = None
     cancel_requested: bool = False
+    stage: str = "ingest"
+    progress: float = 0
     _sse_listeners: List = field(default_factory=list, repr=False)
 
     def __post_init__(self):
@@ -102,8 +108,9 @@ def abandon(job: JobRecord):
 
 def finish_job(job: JobRecord):
     global _current_job
-    if _current_job is job:
-        _current_job = None
+    if _current_job is not job:
+        return
+    _current_job = None
     get_model_manager_instance().unload(job.tts_mode)
     _cleanup_dir(job.temp_dir)
 
@@ -128,17 +135,26 @@ def run_job(job: JobRecord):
 async def _run_job(job: JobRecord):
     try:
         await asyncio.to_thread(_process_job_sync, job)
+        _check_cancel(job)
     except _JobCancelled:
         job.status = "terminated"
         job.error = "terminated by user"
+        job.completed_at = datetime.now(timezone.utc).isoformat()
         _emit_sse(job, "terminated", {"status": "terminated"})
-        finish_job(job)
     except Exception as e:
         job.status = "failed"
         job.error = str(e)
+        job.completed_at = datetime.now(timezone.utc).isoformat()
         _emit_sse(job, "failed", {"error": str(e)})
-        finish_job(job)
-    job.completed_at = datetime.now(timezone.utc).isoformat()
+    else:
+        job.status = "completed"
+        job.completed_at = datetime.now(timezone.utc).isoformat()
+        _emit_sse(job, "complete", job.result or {})
+    # Keep terminal status available after refresh; release files only after
+    # the worker has stopped, and only if it still owns the shared directory.
+    if job.status in {"failed", "terminated"} and _current_job is job:
+        get_model_manager_instance().unload(job.tts_mode)
+        _cleanup_dir(job.temp_dir)
 
 
 def _check_cancel(job: JobRecord):
@@ -153,6 +169,10 @@ def _process_job_sync(job: JobRecord):
 
     settings = load_settings()
     settings.tts.mode = job.tts_mode
+    settings.tts.podcast_language = validate_language_config(
+        job.tts_mode, job.config, settings.tts.podcast_language,
+    )
+    validate_bodhan_settings(settings)
     settings.pipeline.content_dir = job.temp_dir
     settings.pipeline.audio_dir = job.temp_dir
     log_path = str(Path(job.temp_dir) / "llm_log.md")
@@ -194,16 +214,15 @@ def _process_job_sync(job: JobRecord):
         settings.actor.base_url, settings.actor.api_key, settings.actor.model,
         log_path=log_path,
     )
-    graph = build_graph(actor_client, job.config.get("max_loops", settings.pipeline.max_loops))
+    graph = build_graph(actor_client, job.config.get("max_loops", settings.pipeline.max_loops),
+                        english_only=job.tts_mode == "bodhan")
     turns = run_section(graph, markdown, questions_context)
     turns, _ = _renumber(turns, 0)
 
-    script_path = _Path(settings.pipeline.content_dir) / "script.json"
-    script_path.write_text(json.dumps(turns, ensure_ascii=False, indent=2), encoding="utf-8")
-
     _check_cancel(job)
     _emit_sse(job, "stage_complete", {"stage": "script_gen", "progress": 40})
-    _emit_sse(job, "stage_start", {"stage": "tts", "progress": 40})
+    turns = _save_job_scripts(job, settings, turns)
+    _emit_sse(job, "stage_start", {"stage": "tts", "progress": 50})
 
     if job.tts_mode != "bodhan":
         _emit_sse(job, "model_loading", {"model": settings.tts.local_model_path})
@@ -213,7 +232,7 @@ def _process_job_sync(job: JobRecord):
     for idx, turn in enumerate(turns):
         _check_cancel(job)
         set_determinism(settings.tts.seed)
-        _synth_one(model, turn, settings, template)
+        _synth_one(model, turn, settings, template, check_cancel=lambda: _check_cancel(job), raise_on_error=True)
         _emit_sse(job, "turn_synthesized", {
             "turn_id": turn["turn_id"],
             "speaker": turn["speaker"],
@@ -224,57 +243,77 @@ def _process_job_sync(job: JobRecord):
     _emit_sse(job, "stage_complete", {"stage": "tts", "progress": 85})
     _emit_sse(job, "stage_start", {"stage": "stitch", "progress": 85})
 
-    stitch(settings)
+    if not stitch(settings, turns):
+        raise RuntimeError("Podcast audio could not be stitched")
     _check_cancel(job)
     _emit_sse(job, "stage_complete", {"stage": "stitch", "progress": 100})
 
     job.result = _result_payload(job, turns)
-    _emit_sse(job, "complete", job.result)
-    job.status = "completed"
 
 
 def _process_revision_sync(job: JobRecord, settings, mm):
-    from pathlib import Path as _Path
     from src.tts import _load_template, _synth_one, set_determinism
 
-    _Path(settings.pipeline.audio_dir, "final_podcast.mp3").unlink(missing_ok=True)
     _emit_sse(job, "stage_start", {"stage": "revision", "progress": 30})
-
-    script_path = _Path(settings.pipeline.content_dir) / "script.json"
-    if not script_path.exists():
-        raise RuntimeError(f"{script_path} not found; run generation first.")
-    turns = json.loads(script_path.read_text(encoding="utf-8"))
+    turns, spoken = load_script_pair(settings)
 
     client = LLMClient(
         settings.actor.base_url, settings.actor.api_key, settings.actor.model,
         log_path=str(Path(settings.pipeline.content_dir) / "llm_log.md"),
     )
-    graph = build_revision_graph(client, job.config.get("max_loops", settings.pipeline.max_loops))
+    graph = build_revision_graph(client, job.config.get("max_loops", settings.pipeline.max_loops),
+                                 english_only=job.tts_mode == "bodhan")
     edits = run_revision(graph, turns, job.config.get("feedback", ""))
 
-    updated = turns
+    updated = spoken
     if edits:
         _check_cancel(job)
-        updated = merge_edits(turns, edits)
-        script_path.write_text(json.dumps(updated, ensure_ascii=False, indent=2), encoding="utf-8")
+        updated = _save_job_scripts(job, settings, turns, previous_spoken=spoken, edits=edits)
+        changed = changed_turns(spoken, updated)
 
-        template = _merge_template_overrides(_load_template(settings), job.config)
-        model = mm.get_model(job.tts_mode, settings)
-        for edit in edits:
+        if changed:
+            template = _merge_template_overrides(_load_template(settings), job.config)
+            model = mm.get_model(job.tts_mode, settings)
+            _emit_sse(job, "stage_start", {"stage": "tts", "progress": 50})
+            for edit in changed:
+                _check_cancel(job)
+                set_determinism(settings.tts.seed)
+                _synth_one(model, edit, settings, template, check_cancel=lambda: _check_cancel(job), raise_on_error=True)
             _check_cancel(job)
-            set_determinism(settings.tts.seed)
-            _synth_one(model, edit, settings, template)
-        stitch(settings)
+            _emit_sse(job, "stage_start", {"stage": "stitch", "progress": 85})
+            if not stitch(settings, updated):
+                raise RuntimeError("Revised podcast audio could not be stitched")
+
+    _check_cancel(job)
 
     _emit_sse(job, "revision_complete", {"progress": 90})
     job.result = _result_payload(job, updated)
-    _emit_sse(job, "complete", job.result)
-    job.status = "completed"
+
+
+def _save_job_scripts(job, settings, english, previous_spoken=None, edits=None):
+    translating = job.tts_mode == "bodhan" and settings.tts.podcast_language != "en"
+    if translating:
+        _emit_sse(job, "stage_start", {"stage": "translation", "progress": 40})
+    callbacks = dict(
+        check_cancel=lambda: _check_cancel(job),
+        on_progress=lambda completed, total: _emit_sse(job, "translation_progress", {
+            "completed_turns": completed, "total_turns": total,
+            "progress": 40 + completed / total * 10,
+        }),
+    )
+    if previous_spoken is None:
+        spoken = save_scripts(english, settings, **callbacks)
+    else:
+        spoken = save_revision_scripts(english, previous_spoken, edits, settings, **callbacks)
+    if translating:
+        _emit_sse(job, "stage_complete", {"stage": "translation", "progress": 50})
+    return spoken
 
 
 def _result_payload(job: JobRecord, turns: List[Dict[str, str]]) -> Dict[str, Any]:
     return {
         "tts_mode": job.tts_mode,
+        "podcast_language": job.config.get("podcast_language", "en"),
         "mp3_url": "/api/job/result",
         "script_url": "/api/job/script",
         "questions": job.questions_report,
@@ -286,6 +325,10 @@ def _result_payload(job: JobRecord, turns: List[Dict[str, str]]) -> Dict[str, An
 
 
 def _emit_sse(job: JobRecord, event_type: str, data: Dict[str, Any]):
+    if "stage" in data:
+        job.stage = data["stage"]
+    if "progress" in data:
+        job.progress = data["progress"]
     payload = json.dumps({"event": event_type, "data": json.dumps(data)})
     for listener, loop in list(job._sse_listeners):
         try:

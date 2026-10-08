@@ -13,8 +13,7 @@ async def finish_job():
         return JSONResponse(content={"status": "cleaned_up"})
     if job.status == "running":
         job.cancel_requested = True
-        job_queue.finish_job(job)
-        return JSONResponse(content={"status": "terminated_and_cleaned"})
+        return JSONResponse(content={"status": "cancelling"})
     job_queue.finish_job(job)
     return JSONResponse(content={"status": "cleaned_up"})
 
@@ -25,6 +24,4 @@ async def terminate_job():
     if job is None or job.status != "running":
         raise HTTPException(status_code=400, detail="no running job")
     job.cancel_requested = True
-    # Immediately unload model and clean up - don't wait for background thread
-    job_queue.finish_job(job)
-    return JSONResponse(content={"status": "terminated", "tts_mode": job.tts_mode})
+    return JSONResponse(content={"status": "cancelling", "tts_mode": job.tts_mode})

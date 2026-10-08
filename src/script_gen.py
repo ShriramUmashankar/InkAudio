@@ -6,6 +6,7 @@ from .config import Settings
 from .graph import (
     build_graph,
     build_revision_graph,
+    merge_edits,
     run_revision,
     run_section,
 )
@@ -14,6 +15,93 @@ from .ingest import convert_questions_pdf, md_path_for
 from .llm_client import LLMClient
 from .tts import synthesize_all, synthesize_turns
 from .stitch import stitch
+from .translation import translate_turns, validate_language_config
+
+
+def _write_json(path, value):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(".json.tmp")
+    temporary.write_text(json.dumps(value, ensure_ascii=False, indent=2), encoding="utf-8")
+    temporary.replace(path)
+
+
+def save_scripts(english, settings, check_cancel=None, on_progress=None):
+    """Translate completely before replacing either published script."""
+    spoken = translate_turns(english, settings, check_cancel, on_progress)
+    if check_cancel:
+        check_cancel()
+    _publish_scripts(english, spoken, settings)
+    return spoken
+
+
+def save_revision_scripts(original, spoken, edits, settings, check_cancel=None, on_progress=None):
+    """Translate only changed source turns, preserving untouched spoken text."""
+    english = merge_edits(original, edits)
+    edited = changed_turns(original, english)
+    if not edited:
+        return spoken
+    translated = translate_turns(edited, settings, check_cancel, on_progress)
+    updated = merge_edits(spoken, translated)
+    if check_cancel:
+        check_cancel()
+    _publish_scripts(english, updated, settings)
+    print(f"[revise] {len(edited)} English turn(s) edited; "
+          f"{len(changed_turns(spoken, updated))} spoken turn(s) to synthesize")
+    return updated
+
+
+def _publish_scripts(english, spoken, settings):
+    base = Path(settings.pipeline.content_dir)
+    if settings.tts.mode == "bodhan":
+        _write_json(base / "script_english.json", english)
+        _write_json(base / "script_metadata.json", {
+            "tts_mode": "bodhan", "podcast_language": settings.tts.podcast_language,
+        })
+    _write_json(base / "script.json", spoken)
+    if settings.tts.mode != "bodhan":
+        # A new Qwen script supersedes the previous Bodhan generation.
+        (base / "script_english.json").unlink(missing_ok=True)
+        (base / "script_metadata.json").unlink(missing_ok=True)
+
+
+def load_script_pair(settings):
+    base = Path(settings.pipeline.content_dir)
+    script = base / "script.json"
+    if not script.exists():
+        raise RuntimeError(f"{script} not found; run generation first.")
+    spoken = json.loads(script.read_text(encoding="utf-8"))
+    metadata = base / "script_metadata.json"
+    if metadata.exists():
+        language = json.loads(metadata.read_text(encoding="utf-8"))["podcast_language"]
+        if settings.tts.mode != "bodhan" and language != "en":
+            raise ValueError("An Indic Bodhan script requires Bodhan; generate a new Qwen script")
+        if settings.tts.mode == "bodhan" and language != settings.tts.podcast_language:
+            raise ValueError("Podcast language cannot change during revision/audio regeneration; generate a new script")
+    if settings.tts.mode != "bodhan":
+        return spoken, spoken
+    english_path = base / "script_english.json"
+    if not english_path.exists():
+        if settings.tts.podcast_language != "en":
+            raise ValueError("English source script missing; generate a new multilingual podcast")
+        return spoken, spoken
+    english = json.loads(english_path.read_text(encoding="utf-8"))
+    if [(t["turn_id"], t["speaker"]) for t in english] != [(t["turn_id"], t["speaker"]) for t in spoken]:
+        raise ValueError("English and spoken scripts are not aligned; generate a new podcast")
+    return english, spoken
+
+
+def changed_turns(previous, updated):
+    before = {t["turn_id"]: t["text"] for t in previous}
+    return [t for t in updated if before.get(t["turn_id"]) != t["text"]]
+
+
+def validate_bodhan_settings(settings, require_tts=True, require_translation=True):
+    validate_language_config(settings.tts.mode, {}, settings.tts.podcast_language)
+    if settings.tts.mode == "bodhan":
+        if require_translation and settings.tts.podcast_language != "en" and not settings.tts.bodhan_translation_api_key:
+            raise RuntimeError("Bodhan translation credential is missing; configure BODHAN_TRANSLATION")
+        if require_tts and not settings.tts.bodhan_api_key:
+            raise RuntimeError("Bodhan TTS credential is missing; configure BODHAN_TTS")
 
 
 def _renumber(turns: List[Dict[str, str]], counter: int) -> (List[Dict[str, str]], int):
@@ -60,6 +148,7 @@ def generate_script(
     actor_client: LLMClient = None,
     no_tts: bool = False,
 ) -> List[Dict[str, str]]:
+    validate_bodhan_settings(settings, require_tts=not no_tts)
     log_path = settings.pipeline.log_path
     if actor_client is None:
         actor_client = LLMClient(
@@ -85,63 +174,50 @@ def generate_script(
         result = evaluate_questions(questions_md, content_md, eval_client)
         questions_context = _write_questions_files(result, settings.pipeline.content_dir)
 
-    graph = build_graph(actor_client, settings.pipeline.max_loops)
+    graph = build_graph(actor_client, settings.pipeline.max_loops, english_only=settings.tts.mode == "bodhan")
     turns = run_section(graph, markdown, questions_context)
     turns, counter = _renumber(turns, 0)
 
+    turns = save_scripts(turns, settings)
     out_path = Path(settings.pipeline.content_dir) / "script.json"
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(json.dumps(turns, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"[script] wrote {len(turns)} turns -> {out_path}")
 
     if not no_tts:
         synthesize_all(turns, settings)
         if do_stitch:
-            stitch(settings)
+            stitch(settings, turns if settings.tts.mode == "bodhan" else None)
     return turns
 
 
-def merge_edits(turns: List[Dict[str, str]], edits: List[Dict[str, str]]) -> List[Dict[str, str]]:
-    by_id = {t["turn_id"]: dict(t) for t in turns}
-    for e in edits:
-        if e["turn_id"] in by_id:
-            by_id[e["turn_id"]]["text"] = e["text"]
-    return list(by_id.values())
-
-
 def revise_script(settings: Settings, feedback_text: str) -> List[Dict[str, str]]:
-    script_path = Path(settings.pipeline.content_dir) / "script.json"
-    if not script_path.exists():
-        raise RuntimeError(f"{script_path} not found; run generation first.")
-    turns = json.loads(script_path.read_text(encoding="utf-8"))
+    validate_bodhan_settings(settings)
+    turns, spoken = load_script_pair(settings)
 
     client = LLMClient(
         settings.actor.base_url, settings.actor.api_key, settings.actor.model,
         log_path=settings.pipeline.log_path,
     )
-    graph = build_revision_graph(client, settings.pipeline.max_loops)
+    graph = build_revision_graph(client, settings.pipeline.max_loops, english_only=settings.tts.mode == "bodhan")
 
     edits = run_revision(graph, turns, feedback_text)
     if not edits:
         print("[revise] no turns changed")
-        return turns
+        return spoken
 
-    updated = merge_edits(turns, edits)
-    script_path.write_text(json.dumps(updated, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"[revise] applied {len(edits)} turn edit(s) -> {script_path}")
-
-    synthesize_turns(edits, settings)
-    stitch(settings)
+    updated = save_revision_scripts(turns, spoken, edits, settings)
+    changed = changed_turns(spoken, updated)
+    if changed:
+        synthesize_turns(changed, settings)
+        if not stitch(settings, updated if settings.tts.mode == "bodhan" else None):
+            raise RuntimeError("Revised podcast audio could not be stitched")
     return updated
 
 
 def regenerate_audio(settings: Settings, do_stitch: bool = True) -> List[Dict[str, str]]:
-    script_path = Path(settings.pipeline.content_dir) / "script.json"
-    if not script_path.exists():
-        raise RuntimeError(f"{script_path} not found; run generation or --revise first.")
-    turns = json.loads(script_path.read_text(encoding="utf-8"))
+    validate_bodhan_settings(settings, require_translation=False)
+    _, turns = load_script_pair(settings)
     print(f"[script] regenerating audio for {len(turns)} existing turns")
     synthesize_all(turns, settings)
     if do_stitch:
-        stitch(settings)
+        stitch(settings, turns if settings.tts.mode == "bodhan" else None)
     return turns

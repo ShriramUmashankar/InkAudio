@@ -17,5 +17,8 @@ async def revise_job(request: RevisionRequest):
     job.result = None
     job.error = None
     job.cancel_requested = False
+    job.stage = "revision"
+    job.progress = 0
+    job.completed_at = None
     job_queue.run_job(job)
     return JSONResponse(status_code=202, content={"status": "running", "tts_mode": job.tts_mode})

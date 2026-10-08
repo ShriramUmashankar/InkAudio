@@ -1,21 +1,29 @@
 import json
+import io
 import os
 import random
-import time
+import re
+import textwrap
 import numpy as np
 from pathlib import Path
 from typing import Dict, List
 
-import requests
+from pydub import AudioSegment
 import soundfile as sf
 import torch
 import yaml
 
 from .config import Settings
+from .bodhan import post_bodhan
 
-_BODHAN_RPM = 3
-_BODHAN_MIN_INTERVAL = 60.0 / _BODHAN_RPM
-_last_bodhan_call = 0.0
+
+def _bodhan_chunks(text):
+    # Conservative size: the API recommends a sentence or two / ~30s per call.
+    for sentence_index, sentence in enumerate(re.split(r"(?<=[.!?।॥])\s+", text.strip())):
+        for chunk_index, chunk in enumerate(textwrap.wrap(
+            sentence, width=250, break_long_words=False, break_on_hyphens=False,
+        )):
+            yield chunk, sentence_index > 0 and chunk_index == 0
 
 
 def set_determinism(seed: int):
@@ -93,41 +101,37 @@ def _load_template(settings: Settings) -> Dict:
         return yaml.safe_load(f)
 
 
-def _synth_one(model, turn: Dict[str, str], settings: Settings, template: Dict) -> None:
+def _synth_one(model, turn: Dict[str, str], settings: Settings, template: Dict, check_cancel=None, raise_on_error=False) -> None:
     out = Path(settings.pipeline.audio_dir) / f"{turn['turn_id']}_{turn['speaker']}.wav"
     mode = settings.tts.mode
 
     if mode == "bodhan":
-        global _last_bodhan_call
-        wait = _BODHAN_MIN_INTERVAL - (time.monotonic() - _last_bodhan_call)
-        if wait > 0:
-            time.sleep(wait)
-        _last_bodhan_call = time.monotonic()
-        try:
-            host_cfg = template.get("host1") if turn["speaker"] == "Host 1" else template.get("host2")
-            voice = host_cfg.get("voice", "") if host_cfg else ""
-            lang = host_cfg.get("lang", "en") if host_cfg else "en"
-            style = host_cfg.get("style", "") if host_cfg else ""
-            instructions = {"lang": lang}
-            if style:
-                instructions["style"] = style
-            resp = requests.post(
-                "https://api.bodhan.ai/v1/audio/speech",
-                headers={"Authorization": f"Bearer {settings.tts.bodhan_api_key}"},
-                json={
-                    "model": "indic-speak",
-                    "input": turn["text"],
-                    "voice": voice,
-                    "instructions": json.dumps(instructions),
-                },
-                timeout=120,
-            )
-            resp.raise_for_status()
-            with open(out, "wb") as f:
-                f.write(resp.content)
-            print(f"[tts] {out.name}")
-        except Exception as e:
-            print(f"[tts] FAILED {out.name}: {e}")
+        host_cfg = template.get("host1" if turn["speaker"] == "Host 1" else "host2") or {}
+        instructions = {"lang": settings.tts.podcast_language}
+        if host_cfg.get("style"):
+            instructions["style"] = host_cfg["style"]
+        chunks = list(_bodhan_chunks(turn["text"]))
+        if not chunks or any(len(chunk) > 250 for chunk, _ in chunks):
+            raise ValueError(f"Turn {turn['turn_id']} has empty text or a token too long for Bodhan TTS")
+        audio = AudioSegment.empty()
+        for chunk, sentence_start in chunks:
+            resp = post_bodhan("/v1/audio/speech", settings.tts.bodhan_api_key, {
+                "model": "indic-speak", "input": chunk,
+                "voice": host_cfg.get("voice", ""),
+                "instructions": json.dumps(instructions),
+            }, check_cancel=check_cancel, default_rpm=3)
+            segment = AudioSegment.from_wav(io.BytesIO(resp.content))
+            if len(segment) == 0:
+                raise RuntimeError(f"Bodhan returned empty audio for turn {turn['turn_id']}")
+            if sentence_start:
+                audio += AudioSegment.silent(duration=250, frame_rate=segment.frame_rate)
+            audio += segment
+        if check_cancel:
+            check_cancel()
+        temporary = out.with_suffix(".wav.tmp")
+        audio.export(str(temporary), format="wav")
+        temporary.replace(out)
+        print(f"[tts] {out.name}")
         return
 
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -157,10 +161,14 @@ def _synth_one(model, turn: Dict[str, str], settings: Settings, template: Dict) 
         else:
             raise ValueError(f"Unknown TTS mode: {mode}")
 
+        if len(wavs) == 0 or len(wavs[0]) == 0:
+            raise RuntimeError(f"Qwen returned empty audio for turn {turn['turn_id']}")
         sf.write(str(out), wavs[0], sr)
         print(f"[tts] {out.name}")
     except Exception as e:
         print(f"[tts] FAILED {out.name}: {e}")
+        if raise_on_error:
+            raise
 
 
 def synthesize_turns(turns: List[Dict[str, str]], settings: Settings) -> None:
