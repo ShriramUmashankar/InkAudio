@@ -1,0 +1,132 @@
+[
+  {
+    "turn_id": "0001",
+    "speaker": "Host 1",
+    "text": "கனமான storm-ன் நடுவே கடலில் தொலைந்துவிட்டதாக கற்பனை செய்து பாருங்கள், வானம் முழுவதும் மேகமூட்டமாக உள்ளது, எந்த வழியில் வீடு இருக்கிறது என்று உங்களுக்குச் சொல்ல ஒரு star கூட கண்ணுக்குத் தெரியவில்லை."
+  },
+  {
+    "turn_id": "0002",
+    "speaker": "Host 2",
+    "text": "ஐயோ. GPS அல்லது stars இல்லாமல், ancient sailors panic அடைந்திருக்க வேண்டும். அவர்கள் எங்கே செல்ல வேண்டும் என்று எப்படி figure out செய்தார்கள்?"
+  },
+  {
+    "turn_id": "0003",
+    "speaker": "Host 1",
+    "text": "அவர்கள் magnetic compass என்ற ஒரு அற்புதமான சிறிய invention-ஐ பயன்படுத்தினார்கள்! Hi everyone, நான் Arun."
+  },
+  {
+    "turn_id": "0004",
+    "speaker": "Host 2",
+    "text": "என் பெயர் Anitha. இன்று நாம் magnets-இன் கண்ணுக்கு தெரியாத, pull செய்யும் சக்திகளைப் பற்றி explore செய்கிறோம், அவை நம் வழியைக் கண்டுபிடிக்க எப்படி உதவுகின்றன, மேலும் அவை ஏன் ஒருவருக்கொருவர் சுற்றி மிகவும் விசித்திரமாக act செய்கின்றன என்பதையும் பார்க்கிறோம். சரி Arun, நீங்கள் ancient sailors-ஐ mention செய்தீர்கள், ஆனால் magnets உண்மையில் எப்படி work செய்கின்றன?"
+  },
+  {
+    "turn_id": "0005",
+    "speaker": "Host 1",
+    "text": "சரி, இது materials-லிருந்துதான் தொடங்குகிறது. நீங்கள் சில random objects-களை—ஒரு wooden pencil, ஒரு rubber eraser மற்றும் சில iron nails போன்றவற்றை—சேர்த்து, அவற்றின் அருகே ஒரு magnet-ஐக் கொண்டு வந்தால், நீங்கள் சுவாரஸ்யமான ஒன்றை notice செய்வீர்கள். சில things ஒட்டிக்கொள்கின்றன, சில ஒட்டவில்லை."
+  },
+  {
+    "turn_id": "0006",
+    "speaker": "Host 2",
+    "text": "சரியாகச் சொன்னீர்கள், ஒட்டிக்கொள்ளும் things magnetic, ஒட்டாதவை non-magnetic. ஆனால் wait, magnets ஈர்க்கும் actual metals என்னென்ன?"
+  },
+  {
+    "turn_id": "0007",
+    "speaker": "Host 1",
+    "text": "இந்த chapter nickel மற்றும் cobalt உடன் iron-ஐ ஒரு primary magnetic material ஆக highlight செய்கிறது. இந்த metals-ன் சில combinations-களும் magnets-ஆல் ஈர்க்கப்படுகின்றன."
+  },
+  {
+    "turn_id": "0008",
+    "speaker": "Host 2",
+    "text": "Got it. Iron, nickel மற்றும் cobalt. இப்போது, நான் ஒரு bar magnet-ஐப் பிடிக்கும்போது, iron filings எல்லா இடங்களிலும் சமமாக ஒட்டிக்கொள்கிறதா, அல்லது அவற்றுக்கு favorite spots இருக்கிறதா?"
+  },
+  {
+    "turn_id": "0009",
+    "speaker": "Host 1",
+    "text": "நிச்சயமாக அவற்றுக்கு favorites இருக்கின்றன! நீங்கள் ஒரு paper-ன் மீது iron filings-ஐத் தூவி, அதன் மேல் ஒரு bar magnet-ஐ வைத்தால், அதிகபட்ச number of filings magnet-ன் ends-க்கு மிக அருகில் ஒட்டிக்கொண்டிருப்பதைக் காண்பீர்கள்."
+  },
+  {
+    "turn_id": "0010",
+    "speaker": "Host 2",
+    "text": "அந்த ends-க்கு special names இருக்கின்றன, இல்லையா?"
+  },
+  {
+    "turn_id": "0011",
+    "speaker": "Host 1",
+    "text": "சரியாகச் சொன்னீர்கள். அவை magnet-ன் இரண்டு poles—North pole மற்றும் South pole. மேலும் ஒரு fun fact: உங்களால் ஒரு pole-ஐ மட்டும் isolate செய்ய முடியாது. நீங்கள் ஒரு magnet-ஐச் சிறிய pieces-ஆக உடைத்தாலும், ஒவ்வொரு piece-லும் North மற்றும் South pole இரண்டும் இருக்கும்."
+  },
+  {
+    "turn_id": "0012",
+    "speaker": "Host 2",
+    "text": "Nature உண்மையிலேயே symmetry-ஐ விரும்புகிறது, இல்லையா? ஆனால் wait, முன்னதாக sailors directions-ஐ எப்படி கண்டுபிடித்தார்கள் என்று நீங்கள் mention செய்தீர்கள். அதில் ஒரு magnet எப்படி help செய்கிறது?"
+  },
+  {
+    "turn_id": "0013",
+    "speaker": "Host 1",
+    "text": "நீங்கள் ஒரு thread-ஐப் பயன்படுத்தி ஒரு bar magnet-ஐ freely suspend செய்தால், ஏதோ magic நடக்கும். அது எப்போதும் north-south direction-ஐ நோக்கி வந்து நிற்கும். ஏனென்றால் பூமியே ஒரு giant, invisible magnet போல act செய்கிறது!"
+  },
+  {
+    "turn_id": "0014",
+    "speaker": "Host 2",
+    "text": "அதனால்தான் compass வேலை செய்கிறது! இது ஒரு small box-க்குள் உள்ள ஒரு tiny, freely rotating magnet தான், பொதுவாக North-seeking end சிவப்பு color-இல் paint செய்யப்பட்ட ஒரு needle-உடன் இருக்கும்."
+  },
+  {
+    "turn_id": "0015",
+    "speaker": "Host 1",
+    "text": "Spot on. உண்மையில், modern compass-களுக்கு நீண்ட காலத்திற்கு முன்பே, ancient Indian sailors navigation-க்காக matsya-yantra எனப்படும் oil vessel-இல் வைக்கப்பட்டுள்ள magnetized fish-shaped iron piece-ஐப் பயன்படுத்தினர்."
+  },
+  {
+    "turn_id": "0016",
+    "speaker": "Host 2",
+    "text": "அது மிகவும் cool ஆன historical detail. ஆனால் இரண்டு magnets-ஐ ஒன்றாகக் கொண்டு வரும்போது என்ன நடக்கிறது என்று எனக்குச் சொல்லுங்கள். அவை எப்போதும் cuddle செய்ய விரும்புமா?"
+  },
+  {
+    "turn_id": "0017",
+    "speaker": "Host 1",
+    "text": "Not quite! Like poles—அதாவது இரண்டு North poles அல்லது இரண்டு South poles—ஒன்றையொன்று repel செய்து தள்ளிவிடும். ஆனால் unlike poles—ஒரு North மற்றும் ஒரு South—ஒன்றையொன்று enthusiastically ஈர்க்கின்றன."
+  },
+  {
+    "turn_id": "0018",
+    "speaker": "Host 2",
+    "text": "ஆஹா, opposites attract! மேலும் wait, ஒரு real magnet-க்கும் சாதாரண iron piece-க்கும் இடையே உள்ள வித்தியாசத்தை tell செய்ய அது நமக்கு எப்படி help செய்கிறது?"
+  },
+  {
+    "turn_id": "0019",
+    "speaker": "Host 1",
+    "text": "அதுதான் ultimate test, Anitha. ஒரு சாதாரண iron bar ஒரு magnet-இன் இரண்டு poles-களுக்கும் attract செய்யப்படும். But true repulsion—ஒரு pole மற்றொரு object-ஐ தள்ளிவிடும்—உண்மையான magnets இரண்டு இருக்கும்போது மட்டுமே நடக்கும். Repulsion என்பது ஒரு magnet-ஐ identify செய்வதற்கான sure-fire வழி."
+  },
+  {
+    "turn_id": "0020",
+    "speaker": "Host 2",
+    "text": "Physics நமக்கு trust issues-ஐத் தருகிறது! உங்களால் repulsion-ஐ மட்டுமே நம்ப முடியும். ஆனால் நீங்கள் ஏதாவது ஒரு பொருளை குறுக்கே போட்டால் என்ன செய்வது? அதாவது, ஒரு magnet-ன் power மரத்தின் அல்லது glass-ன் வழியாக pass ஆக முடியுமா?"
+  },
+  {
+    "turn_id": "0021",
+    "speaker": "Host 1",
+    "text": "நிச்சயமாக முடியும். ஒரு magnet மற்றும் compass needle-க்கு இடையே நீங்கள் ஒரு non-magnetic material-ஐ—மரம், cardboard, மெல்லிய plastic sheet அல்லது glass போன்றவற்றை—வைத்தால், magnetic effect எந்த major drop in deflection-உமின்றி அதற்குள்ளேயே சரியாக வேலை செய்யும்."
+  },
+  {
+    "turn_id": "0022",
+    "speaker": "Host 2",
+    "text": "அடிப்படையில், solid non-magnetic barriers-க்கு பின்னால் இருந்து magnetic forces வேலை செய்வது முற்றிலும் fine தான்."
+  },
+  {
+    "turn_id": "0023",
+    "speaker": "Host 1",
+    "text": "You nailed it. இந்த basics-ஐ நீங்கள் தெரிந்துகொண்டவுடன், ஒரு sewing needle, ஒரு cork மற்றும் ஒரு bowl of water-ஐ வைத்து உங்கள் சொந்த compass-ஐ உருவாக்கலாம், அல்லது magnetic mazes மற்றும் matchbox-magnet cars போன்ற வேடிக்கையான games-ஐயும் setup செய்யலாம்."
+  },
+  {
+    "turn_id": "0024",
+    "speaker": "Host 2",
+    "text": "எனவே அனைத்தையும் summarize செய்ய வேண்டுமென்றால்: magnets-க்கு iron, nickel மற்றும் cobalt என்றால் ரொம்ப பிடிக்கும், அவை எப்போதும் North மற்றும் South poles ஜோடிகளாக வருகின்றன, நமது giant planet காரணமாக அவை north-south திசையில் point செய்கின்றன, மேலும் opposite poles ஒன்றையொன்று ஈர்க்கின்றன அதே சமயம் like poles repel செய்கின்றன—அதுவும் மரம் மற்றும் glass-ன் வழியாகச் சென்றாலும் கூட!"
+  },
+  {
+    "turn_id": "0025",
+    "speaker": "Host 1",
+    "text": "நானே இதைவிடச் சிறப்பாக சொல்ல முடியாது. அடுத்த முறை நீங்கள் ஒரு compass அல்லது fridge magnet-ஐப் பார்க்கும்போது, அதில் செயல்படும் invisible forces உங்களுக்குத் தெரியும். நான் Arun."
+  },
+  {
+    "turn_id": "0026",
+    "speaker": "Host 2",
+    "text": "மேலும் நான் Anitha. Tuning in செய்ததற்கு நன்றி, everyone!"
+  }
+]

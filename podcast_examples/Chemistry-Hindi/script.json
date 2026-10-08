@@ -1,0 +1,162 @@
+[
+  {
+    "turn_id": "0001",
+    "speaker": "Host 1",
+    "text": "क्या आपने कभी बर्फ के एक cube को counter पर छोड़ दिया है, और आधे घंटे बाद वापस आकर पानी का puddle देखा है? या रात भर में एक छोटी सी हरी bud को पूरे flower में बदलते हुए देखा है?"
+  },
+  {
+    "turn_id": "0002",
+    "speaker": "Host 2",
+    "text": "हमेशा। हमारे आस-पास की चीजें लगातार बदल रही हैं, right? केले पर brown spots आ जाते हैं, ठंडे पानी की bottles warm हो जाती हैं... यह बस daily life है।"
+  },
+  {
+    "turn_id": "0003",
+    "speaker": "Host 1",
+    "text": "बिल्कुल सही, और आज हम उन everyday shifts के पीछे के science को देखने जा रहे हैं। Hey everyone, मैं Amit हूँ।"
+  },
+  {
+    "turn_id": "0004",
+    "speaker": "Host 2",
+    "text": "और मैं Kavya हूँ। आज, Amit और मैं physical और chemical changes के बारे में explore कर रहे हैं। तो Amit, क्या बर्फ का melt होना और केले का rot होना वास्तव में पूरी तरह से अलग rules द्वारा govern होते हैं?"
+  },
+  {
+    "turn_id": "0005",
+    "speaker": "Host 1",
+    "text": "वे बिल्कुल ऐसा ही करते हैं! चलिए physical changes से start करते हैं। कागज़ के एक piece को fold करने, balloon फुलाने, या chalk के एक piece को पीसकर powder बनाने के बारे में सोचें।"
+  },
+  {
+    "turn_id": "0006",
+    "speaker": "Host 2",
+    "text": "खैर, अगर मैं chalk को पीसकर powder बना देता हूँ, तो मुझे वास्तव में original chalk piece वापस नहीं मिल सकता। लेकिन chalk dust अभी भी सिर्फ़ chalk ही है, right?"
+  },
+  {
+    "turn_id": "0007",
+    "speaker": "Host 1",
+    "text": "Spot on. इन सभी changes के दौरान, material—जैसे कि paper, rubber sheet, या chalk—मूल रूप से वही substance रहता है, भले ही उसका appearance, shape, या size बदल जाए। कोई नया substance नहीं बनता है। वह एक physical change है।"
+  },
+  {
+    "turn_id": "0008",
+    "speaker": "Host 2",
+    "text": "आह, okay. तो physical change सिर्फ़ यह बदलना है कि कोई चीज़ कैसी दिखती है या वह किस state में है—जैसे पानी का ice से liquid में बदलना—बिना उसे वास्तव में किसी पूरी तरह से नई चीज़ में बदले।"
+  },
+  {
+    "turn_id": "0009",
+    "speaker": "Host 1",
+    "text": "Precisely. लेकिन क्या होगा अगर हम चीजों को mix up करें और वास्तव में एक बिलकुल नया substance बन जाए? यह हमें chemical changes की ओर ले जाता है।"
+  },
+  {
+    "turn_id": "0010",
+    "speaker": "Host 2",
+    "text": "Ooh, जैसे जब चीजें react करती हैं? मुझे याद है मैंने lime water में हवा blowing के बारे में कुछ पढ़ा था।"
+  },
+  {
+    "turn_id": "0011",
+    "speaker": "Host 1",
+    "text": "Yes! अगर आप एक glass tumbler में थोड़ा lime water लेते हैं और straw के ज़रिए उसमें अपनी exhaled air blow करते हैं, तो कुछ cool होता है। आपकी breath में मौजूद carbon dioxide lime water के साथ react करता है और इसे milky या cloudy बना देता है।"
+  },
+  {
+    "turn_id": "0012",
+    "speaker": "Host 2",
+    "text": "Right, नीचे एक white substance settle हो जाता है। Book ने इसे calcium carbonate कहा था, right?"
+  },
+  {
+    "turn_id": "0013",
+    "speaker": "Host 1",
+    "text": "Exactly. Chemical reaction के ज़रिए एक बिलकुल नया substance बनता है। और क्योंकि एक नए substance का जन्म हुआ है, इसलिए हम इसे chemical change कहते हैं।"
+  },
+  {
+    "turn_id": "0014",
+    "speaker": "Host 2",
+    "text": "हम उस तरीके से भी carbon dioxide के लिए test कर सकते हैं, right? जैसे test tube में vinegar और baking soda को mix करना?"
+  },
+  {
+    "turn_id": "0015",
+    "speaker": "Host 1",
+    "text": "Yes! Gas बनने पर आपको एक fizzing, bubbling sound सुनाई देगी। अगर आप उस gas को ताज़े lime water से गुज़ारते हैं, तो यह milky हो जाता है, जो यह prove करता है कि carbon dioxide produce हुआ था। एक और classic chemical change rusting है—जब iron, oxygen और moisture के साथ react करके iron oxide नामक एक नया brown-coloured substance बनाता है।"
+  },
+  {
+    "turn_id": "0016",
+    "speaker": "Host 2",
+    "text": "Right, rust समय के साथ iron tools को ruin कर देती है। But wait, लकड़ी जलाने या magnesium ribbon के बारे में क्या ख्याल है? क्या वे भी chemical changes हैं?"
+  },
+  {
+    "turn_id": "0017",
+    "speaker": "Host 1",
+    "text": "They are! इसे combustion कहते हैं। जब एक magnesium ribbon जलता है, तो यह हवा से oxygen के साथ react करके एक बिलकुल नया substance—white magnesium oxide powder—बनाता है, जबकि heat और light बाहर निकालता है।"
+  },
+  {
+    "turn_id": "0018",
+    "speaker": "Host 2",
+    "text": "तो combustion के लिए oxygen की ज़रूरत होती है, right? जैसे जब आप एक burning candle को glass tumbler से cover करते हैं और अंततः flame बुझ जाती है क्योंकि इसमें ताज़ी हवा खत्म हो जाती है?"
+  },
+  {
+    "turn_id": "0019",
+    "speaker": "Host 1",
+    "text": "Bingo. Combustion के लिए oxygen ज़रूरी है। But wait—कागज़ combustible होता है, और यह बिना आग पकड़े हर समय हवा में पड़ा रहता है। यह अपने आप flames में क्यों फट नहीं जाता?"
+  },
+  {
+    "turn_id": "0020",
+    "speaker": "Host 2",
+    "text": "Oh! Because इसे एक निश्चित temperature तक पहुँचने के लिए heat की ज़रूरत होती है, right? जैसे जब आप सूर्य की किरणों को एक paper पर focus करने के लिए magnifying glass का उपयोग करते हैं जब तक कि उसमें smoke आना शुरू न हो जाए और आग न लग जाए।"
+  },
+  {
+    "turn_id": "0021",
+    "speaker": "Host 1",
+    "text": "You nailed it. वह minimum temperature जिस पर कोई substance आग पकड़ लेता है, उसके ignition temperature कहलाता है। So combustion होने के लिए, आपको तीन चीज़ों की ज़रूरत होती है: एक combustible substance या fuel, oxygen, और उस ignition temperature तक पहुँचने के लिए heat।"
+  },
+  {
+    "turn_id": "0022",
+    "speaker": "Host 2",
+    "text": "The fire triangle! Fuel, oxygen, और heat. That is super clear. अब, एक burning candle के बारे में क्या ख्याल है? क्या इसमें सिर्फ़ एक प्रकार का change शामिल है?"
+  },
+  {
+    "turn_id": "0023",
+    "speaker": "Host 1",
+    "text": "That is actually a trick question! जब एक candle जलती है, तो wax पिघलता है, wick के ऊपर travel करता है, और evaporate हो जाता है। Melting और evaporation physical changes हैं। But flame में जलने वाला vaporized wax? वह एक chemical change है। So एक burning candle में physical और chemical दोनों changes शामिल होते हैं।"
+  },
+  {
+    "turn_id": "0024",
+    "speaker": "Host 2",
+    "text": "That is fascinating—एक छोटी सी candle में दो प्रकार के changes हो रहे हैं। यहाँ तक कि Michael Faraday ने उन्नीसवीं सदी में candle के chemical history पर व्याख्यानों की एक प्रसिद्ध series दी थी।"
+  },
+  {
+    "turn_id": "0025",
+    "speaker": "Host 1",
+    "text": "He sure did. और यह आपको सोचने पर मजबूर कर देता है: एक बार change हो जाने के बाद, क्या हम हमेशा इसे reverse कर सकते हैं और अपना original substance वापस पा सकते हैं?"
+  },
+  {
+    "turn_id": "0026",
+    "speaker": "Host 2",
+    "text": "Well, बर्फ को melt करने के बाद फिर से freeze किया जा सकता है, so that is reversible. But chopped vegetables? या corn से बना popcorn? एक बार जब आप corn को pop कर देते हैं, तो आप इसे वापस एक hard corn kernel में नहीं बदल सकते।"
+  },
+  {
+    "turn_id": "0027",
+    "speaker": "Host 1",
+    "text": "Exactly. कुछ changes को reverse किया जा सकता है, और कुछ को नहीं। कुछ desirable होते हैं, जैसे खाना पकाना या दूध को curd में बदलना, जबकि अन्य undesirable होते हैं, जैसे food का rot होना या iron का rust लगना।"
+  },
+  {
+    "turn_id": "0028",
+    "speaker": "Host 2",
+    "text": "And कुछ changes हजारों सालों में बहुत धीरे-धीरे होते हैं, right? जैसे rocks का weathering और हवा तथा बहते पानी के कारण होने वाला erosion।"
+  },
+  {
+    "turn_id": "0029",
+    "speaker": "Host 1",
+    "text": "Yes! बड़े rocks physical temperature changes और पानी के साथ chemical reactions के ज़रिए टूटते हैं—जैसे iron oxide के कारण basalt का reddish हो जाना—जिससे sediments बनते हैं जो अंततः soil बन जाते हैं। फिर हवा और पानी erosion के ज़रिए उन sediments को इधर-उधर move करते हैं।"
+  },
+  {
+    "turn_id": "0030",
+    "speaker": "Host 2",
+    "text": "So basically, physical changes नए substances बनाए बिना appearance को alter करते हैं, जबकि chemical changes reactions के ज़रिए बिलकुल नए materials बनाते हैं।"
+  },
+  {
+    "turn_id": "0031",
+    "speaker": "Host 1",
+    "text": "आपने इसे perfectly summarize किया, Kavya. Physics और chemistry हमारे चारों ओर, हर एक second हो रहे हैं। मैं Amit हूँ।"
+  },
+  {
+    "turn_id": "0032",
+    "speaker": "Host 2",
+    "text": "और मैं Kavya हूँ। Tuning in करने के लिए धन्यवाद, everyone!"
+  }
+]

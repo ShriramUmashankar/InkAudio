@@ -1,0 +1,194 @@
+[
+  {
+    "turn_id": 1,
+    "speaker": "Host 1",
+    "start_ms": 0,
+    "end_ms": 14757
+  },
+  {
+    "turn_id": 2,
+    "speaker": "Host 2",
+    "start_ms": 15057,
+    "end_ms": 27583
+  },
+  {
+    "turn_id": 3,
+    "speaker": "Host 1",
+    "start_ms": 27883,
+    "end_ms": 35898
+  },
+  {
+    "turn_id": 4,
+    "speaker": "Host 2",
+    "start_ms": 36198,
+    "end_ms": 50778
+  },
+  {
+    "turn_id": 5,
+    "speaker": "Host 1",
+    "start_ms": 51078,
+    "end_ms": 65999
+  },
+  {
+    "turn_id": 6,
+    "speaker": "Host 2",
+    "start_ms": 66299,
+    "end_ms": 77728
+  },
+  {
+    "turn_id": 7,
+    "speaker": "Host 1",
+    "start_ms": 78028,
+    "end_ms": 97637
+  },
+  {
+    "turn_id": 8,
+    "speaker": "Host 2",
+    "start_ms": 97937,
+    "end_ms": 112096
+  },
+  {
+    "turn_id": 9,
+    "speaker": "Host 1",
+    "start_ms": 112396,
+    "end_ms": 123392
+  },
+  {
+    "turn_id": 10,
+    "speaker": "Host 2",
+    "start_ms": 123692,
+    "end_ms": 131110
+  },
+  {
+    "turn_id": 11,
+    "speaker": "Host 1",
+    "start_ms": 131410,
+    "end_ms": 151451
+  },
+  {
+    "turn_id": 12,
+    "speaker": "Host 2",
+    "start_ms": 151751,
+    "end_ms": 158828
+  },
+  {
+    "turn_id": 13,
+    "speaker": "Host 1",
+    "start_ms": 159128,
+    "end_ms": 170892
+  },
+  {
+    "turn_id": 14,
+    "speaker": "Host 2",
+    "start_ms": 171192,
+    "end_ms": 179805
+  },
+  {
+    "turn_id": 15,
+    "speaker": "Host 1",
+    "start_ms": 180105,
+    "end_ms": 206967
+  },
+  {
+    "turn_id": 16,
+    "speaker": "Host 2",
+    "start_ms": 207267,
+    "end_ms": 219202
+  },
+  {
+    "turn_id": 17,
+    "speaker": "Host 1",
+    "start_ms": 219502,
+    "end_ms": 236813
+  },
+  {
+    "turn_id": 18,
+    "speaker": "Host 2",
+    "start_ms": 237113,
+    "end_ms": 250504
+  },
+  {
+    "turn_id": 19,
+    "speaker": "Host 1",
+    "start_ms": 250804,
+    "end_ms": 264098
+  },
+  {
+    "turn_id": 20,
+    "speaker": "Host 2",
+    "start_ms": 264398,
+    "end_ms": 281538
+  },
+  {
+    "turn_id": 21,
+    "speaker": "Host 1",
+    "start_ms": 281838,
+    "end_ms": 303757
+  },
+  {
+    "turn_id": 22,
+    "speaker": "Host 2",
+    "start_ms": 304057,
+    "end_ms": 316833
+  },
+  {
+    "turn_id": 23,
+    "speaker": "Host 1",
+    "start_ms": 317133,
+    "end_ms": 342618
+  },
+  {
+    "turn_id": 24,
+    "speaker": "Host 2",
+    "start_ms": 342918,
+    "end_ms": 356907
+  },
+  {
+    "turn_id": 25,
+    "speaker": "Host 1",
+    "start_ms": 357207,
+    "end_ms": 370598
+  },
+  {
+    "turn_id": 26,
+    "speaker": "Host 2",
+    "start_ms": 370898,
+    "end_ms": 388629
+  },
+  {
+    "turn_id": 27,
+    "speaker": "Host 1",
+    "start_ms": 388929,
+    "end_ms": 406069
+  },
+  {
+    "turn_id": 28,
+    "speaker": "Host 2",
+    "start_ms": 406369,
+    "end_ms": 417712
+  },
+  {
+    "turn_id": 29,
+    "speaker": "Host 1",
+    "start_ms": 418012,
+    "end_ms": 440187
+  },
+  {
+    "turn_id": 30,
+    "speaker": "Host 2",
+    "start_ms": 440487,
+    "end_ms": 451324
+  },
+  {
+    "turn_id": 31,
+    "speaker": "Host 1",
+    "start_ms": 451624,
+    "end_ms": 461084
+  },
+  {
+    "turn_id": 32,
+    "speaker": "Host 2",
+    "start_ms": 461384,
+    "end_ms": 465730
+  }
+]
