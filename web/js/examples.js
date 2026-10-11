@@ -13,15 +13,27 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const episodes = {
   magnetism: {
     title: 'Magnetism-Tamil', folder: 'Magnetism-Tamil', language: 'ta',
-    tag: 'FEATURED EPISODE · SCIENCE · CLASS 6 · தமிழ்', hosts: ['Arun', 'Anitha'],
+    tag: 'FEATURED EPISODE · PHYSICS · CLASS 6 · தமிழ்', hosts: ['Arun', 'Anitha'],
     description: 'Invisible forces. A conversation that pulls you in.',
     introduction: 'A compass, two curious minds, and the invisible world of magnets.',
   },
   changes: {
-    title: 'changes-around-us - Hindi', folder: 'Chemistry-Hindi', language: 'hi',
-    tag: 'FEATURED EPISODE · SCIENCE · CLASS 7 · हिन्दी', hosts: ['Amit', 'Raagini'],
+    title: 'Changes Around Us - Hindi', folder: 'Chemistry-Hindi', language: 'hi',
+    tag: 'FEATURED EPISODE · CHEMISTRY · CLASS 7 · हिन्दी', hosts: ['Amit', 'Raagini'],
     description: 'From melting ice to blooming flowers. Discover the changes around us.',
     introduction: 'Two curious minds explore physical and chemical changes in everyday life.',
+  },
+  judiciary: {
+    title: 'Judiciary-English', folder: 'Judiciary-English-Voice-Design', language: 'en',
+    tag: 'FEATURED EPISODE · POLITICAL SCIENCE · CLASS 8 · ENGLISH', hosts: ['Jos', 'Ema'],
+    description: 'Courts, rights, and the pursuit of justice. Discover the Indian judiciary.',
+    introduction: 'Jos and Ema explore how courts protect rights and make justice accessible.',
+  },
+  cell: {
+    title: 'Cell-English', folder: 'Cell-English-Custom-Voice', language: 'en',
+    tag: 'FEATURED EPISODE · BIOLOGY · CLASS 8 · ENGLISH', hosts: ['Jos', 'Ema'],
+    description: 'A tiny world. A remarkable story of life.',
+    introduction: 'Jos and Ema explore cells, microorganisms, and the living world beyond our naked eye.',
   },
 };
 let episode = episodes.magnetism;

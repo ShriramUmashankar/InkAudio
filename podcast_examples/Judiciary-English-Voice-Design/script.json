@@ -1,0 +1,277 @@
+[
+  {
+    "turn_id": "0001",
+    "speaker": "Host 1",
+    "text": "Imagine living in a society where laws could label entire communities as criminals simply by birth, or where governments could restrict what you read just because they did not like the language it was printed in."
+  },
+  {
+    "turn_id": "0002",
+    "speaker": "Host 2",
+    "text": "Wait, really? That sounds like something straight out of a dystopian novel. Did things like that actually happen?"
+  },
+  {
+    "turn_id": "0003",
+    "speaker": "Host 1",
+    "text": "Oh, absolutely. And to understand how we moved past those dark chapters—and how the entire system of justice works today—we are diving into the Indian judicial system. Hey everyone, I am Jos."
+  },
+  {
+    "turn_id": "0004",
+    "speaker": "Host 2",
+    "text": "And I am Ema. Jos, you have to break this down for me because courts and laws sound super intimidating. Where do we even start?"
+  },
+  {
+    "turn_id": "0005",
+    "speaker": "Host 1",
+    "text": "Let us start with the basics. The judiciary is one of the three pillars of government, completely independent from the legislature and the executive. Its main job is to ensure fair adjudication of disputes in accordance with the law, making sure everyone is treated justly."
+  },
+  {
+    "turn_id": "0006",
+    "speaker": "Host 2",
+    "text": "Right, because society is complex and people disagree all the time—over personal stuff, professional contracts, you name it. But how does the government actually try to achieve justice in the first place?"
+  },
+  {
+    "turn_id": "0007",
+    "speaker": "Host 1",
+    "text": "Through the framing of laws! Laws are general rules made by the government to regulate activities and impose consequences if they are broken—like paying a fine, giving compensation, or even imprisonment."
+  },
+  {
+    "turn_id": "0008",
+    "speaker": "Host 2",
+    "text": "Okay, that makes sense. But you mentioned unjust laws earlier. What was that about?"
+  },
+  {
+    "turn_id": "0009",
+    "speaker": "Host 1",
+    "text": "Well, post independence, hundreds of laws framed during the British colonial era were found to be discriminatory and contrary to democratic principles. Over the years, the government has actually repealed over fifteen hundred such laws!"
+  },
+  {
+    "turn_id": "0010",
+    "speaker": "Host 2",
+    "text": "Fifteen hundred? Give me an example."
+  },
+  {
+    "turn_id": "0011",
+    "speaker": "Host 1",
+    "text": "Take the Criminal Tribes Act, eighteen seventy one, which labelled certain communities as criminals by birth, or the Vernacular Press Act, eighteen seventy eight, which restricted freedom of the press. Both have been repealed because they went against the values of a democratic republic."
+  },
+  {
+    "turn_id": "0012",
+    "speaker": "Host 2",
+    "text": "That is wild. And similar unjust laws existed in other countries too, right? Like the Jim Crow laws in the United States or apartheid in South Africa?"
+  },
+  {
+    "turn_id": "0013",
+    "speaker": "Host 1",
+    "text": "Spot on. Both enforced severe racial segregation and restrictions, preventing people from accessing public facilities or living with dignity, though those were thankfully repealed later in the twentieth century."
+  },
+  {
+    "turn_id": "0014",
+    "speaker": "Host 2",
+    "text": "So when a dispute actually goes to court, how does the system figure out what is fair? Is it just about who wins and who loses?"
+  },
+  {
+    "turn_id": "0015",
+    "speaker": "Host 1",
+    "text": "Not quite. That brings us to two crucial aspects of justice: substantive justice and procedural justice."
+  },
+  {
+    "turn_id": "0016",
+    "speaker": "Host 2",
+    "text": "Ooh, break those down for me."
+  },
+  {
+    "turn_id": "0017",
+    "speaker": "Host 1",
+    "text": "Substantive justice focuses on the final result or outcome. It asks whether the decision is actually fair, just, and reasonable. Procedural justice, on the other hand, means that every person involved gets a full opportunity of a hearing before a court makes a decision. And as a rule, every person is presumed innocent until proven guilty."
+  },
+  {
+    "turn_id": "0018",
+    "speaker": "Host 2",
+    "text": "That is reassuring. Everyone gets their day in court. Now, how is the actual court system structured in India?"
+  },
+  {
+    "turn_id": "0019",
+    "speaker": "Host 1",
+    "text": "It is a unified system with a clear hierarchy. At the apex level, you have the Supreme Court of India. At the State level, you have the High Courts. And at the District level, you have the Subordinate Courts."
+  },
+  {
+    "turn_id": "0020",
+    "speaker": "Host 2",
+    "text": "Let us talk about the big one first—the Supreme Court. When did it come into existence?"
+  },
+  {
+    "turn_id": "0021",
+    "speaker": "Host 1",
+    "text": "It came into effect on twenty sixth January nineteen fifty, which is the exact date the Constitution of India came into effect. It is seated in New Delhi and is the final interpreter of the Constitution."
+  },
+  {
+    "turn_id": "0022",
+    "speaker": "Host 2",
+    "text": "And who sits on the Supreme Court bench?"
+  },
+  {
+    "turn_id": "0023",
+    "speaker": "Host 1",
+    "text": "Article one twenty four of the Constitution provides for it. The current strength is thirty three plus one—meaning the Chief Justice of India and thirty three Supreme Court judges, all appointed by the President of India."
+  },
+  {
+    "turn_id": "0024",
+    "speaker": "Host 2",
+    "text": "Do you have to meet certain super high qualifications to be one of those judges?"
+  },
+  {
+    "turn_id": "0025",
+    "speaker": "Host 1",
+    "text": "You do! You have to be a citizen of India, and additionally, you must have been a judge of a High Court for five years, an advocate of a High Court for ten years, or be a distinguished jurist in the opinion of the President. And they retire when they turn sixty five years old."
+  },
+  {
+    "turn_id": "0026",
+    "speaker": "Host 2",
+    "text": "Got it. Now, what kind of powers does the Supreme Court actually wield?"
+  },
+  {
+    "turn_id": "0027",
+    "speaker": "Host 1",
+    "text": "Several types of jurisdiction! First, there is writ jurisdiction, shared with High Courts under Articles thirty two and two hundred and twenty six, to enforce fundamental rights like equality, liberty, and freedom of speech."
+  },
+  {
+    "turn_id": "0028",
+    "speaker": "Host 2",
+    "text": "Wait, can any citizen just walk into the Supreme Court for that?"
+  },
+  {
+    "turn_id": "0029",
+    "speaker": "Host 1",
+    "text": "If the issue has an all-India ramification, yes, you can file a writ petition directly under Article thirty two. Then there is original jurisdiction, under Article one hundred and thirty one, for exclusive legal disputes between the Centre and a State, or between different States—like inter-state river water disputes."
+  },
+  {
+    "turn_id": "0030",
+    "speaker": "Host 2",
+    "text": "Ah, river water disputes make total sense. What about appeals?"
+  },
+  {
+    "turn_id": "0031",
+    "speaker": "Host 1",
+    "text": "The Supreme Court has appellate jurisdiction to hear appeals from High Court final orders involving constitutional interpretation or substantial questions of law, criminal cases with death sentences, or appeals from specialized tribunals like the National Green Tribunal."
+  },
+  {
+    "turn_id": "0032",
+    "speaker": "Host 2",
+    "text": "Are there any other cool powers? I remember reading something about the President asking for advice?"
+  },
+  {
+    "turn_id": "0033",
+    "speaker": "Host 1",
+    "text": "Yes! That is advisory jurisdiction under Article one hundred and forty three. If the President seeks an opinion on a question of law or fact of public importance, a Constitution Bench of at least five judges can provide it."
+  },
+  {
+    "turn_id": "0034",
+    "speaker": "Host 2",
+    "text": "And I am guessing their word is final for the whole country?"
+  },
+  {
+    "turn_id": "0035",
+    "speaker": "Host 1",
+    "text": "Absolutely. Under Article one hundred and forty one, the law declared by the Supreme Court is binding on all courts within the territory of India. Plus, under Article one hundred and forty two, they have the power to pass any order necessary for doing complete justice."
+  },
+  {
+    "turn_id": "0036",
+    "speaker": "Host 2",
+    "text": "That is powerful. Now, moving down one level to the States—tell me about the High Courts."
+  },
+  {
+    "turn_id": "0037",
+    "speaker": "Host 1",
+    "text": "Article two hundred and fourteen says there shall be a High Court in each State. Right now, India has twenty eight States, but twenty five High Courts because some states and Union Territories share a common High Court."
+  },
+  {
+    "turn_id": "0038",
+    "speaker": "Host 2",
+    "text": "Like how Bombay High Court covers Maharashtra, Goa, and Dadra and Nagar Haveli and Daman and Diu."
+  },
+  {
+    "turn_id": "0039",
+    "speaker": "Host 1",
+    "text": "Exactly. High Court judges are appointed by the President in consultation with the Chief Justice of India, the State Governor, and the concerned High Court Chief Justice. They retire at sixty two years of age."
+  },
+  {
+    "turn_id": "0040",
+    "speaker": "Host 2",
+    "text": "And below the High Courts come the Subordinate Courts, right?"
+  },
+  {
+    "turn_id": "0041",
+    "speaker": "Host 1",
+    "text": "Yes, regulated by Articles two hundred and thirty three to two hundred and thirty seven. These include District Courts, Sessions Courts, Revenue Courts, and Small Causes Courts. This is where the judiciary really comes into close contact with everyday people."
+  },
+  {
+    "turn_id": "0042",
+    "speaker": "Host 2",
+    "text": "Now, what about those specialized bodies called tribunals? I saw something about a consumer dispute in the text."
+  },
+  {
+    "turn_id": "0043",
+    "speaker": "Host 1",
+    "text": "Tribunals are quasi-judicial bodies established under various laws to handle specific categories of disputes—like consumer disputes, environmental issues, or company law matters, helping ease the burden on regular courts."
+  },
+  {
+    "turn_id": "0044",
+    "speaker": "Host 2",
+    "text": "Speaking of easing burdens, what about Public Interest Litigation, or PIL? How did that start?"
+  },
+  {
+    "turn_id": "0045",
+    "speaker": "Host 1",
+    "text": "PIL was an amazing innovation by the Supreme Court to address public concern and protect the Right to Life. The very first reported case was by a lawyer named Mrs. Kapila Hingorani."
+  },
+  {
+    "turn_id": "0046",
+    "speaker": "Host 2",
+    "text": "What did she do?"
+  },
+  {
+    "turn_id": "0047",
+    "speaker": "Host 1",
+    "text": "She read in the newspaper about under-trial prisoners in Bihar who had been in jail longer than their actual maximum possible punishment. She filed a writ petition, and the Supreme Court immediately ordered their release—along with guidelines that freed almost forty thousand under-trial prisoners nationwide!"
+  },
+  {
+    "turn_id": "0048",
+    "speaker": "Host 2",
+    "text": "That is incredible. One lawyer reading a newspaper changed the lives of tens of thousands of people. And other famous PIL cases include M.C. Mehta tackling environmental issues like cleaning the Ganga and protecting the Taj Mahal, and the Vishaka guidelines against workplace sexual harassment."
+  },
+  {
+    "turn_id": "0049",
+    "speaker": "Host 1",
+    "text": "You got it. And recently, the legal landscape has modernized even more. The old Indian Penal Code, Code of Criminal Procedure, and Indian Evidence Act have been replaced by the Bharatiya Nyaya Sanhita, the Bharatiya Nagarik Suraksha Sanhita, and the Bharatiya Sakshya Adhiniyam, all enacted in twenty twenty three to ensure faster justice and better protection for victims."
+  },
+  {
+    "turn_id": "0050",
+    "speaker": "Host 2",
+    "text": "And the courts have gone super digital too, haven't they? E-filing, hybrid hearings, live streaming of court proceedings, translating judgments into multiple Indian languages, and the National Judicial Data Grid."
+  },
+  {
+    "turn_id": "0051",
+    "speaker": "Host 1",
+    "text": "Even the Virtual Justice Clock is right there at the entrance of the Supreme Court to show real-time judicial data and transparency."
+  },
+  {
+    "turn_id": "0052",
+    "speaker": "Host 2",
+    "text": "Before we wrap up, what about people who want to avoid the long rigors of a formal court battle altogether?"
+  },
+  {
+    "turn_id": "0053",
+    "speaker": "Host 1",
+    "text": "Courts heavily encourage alternate modes of dispute resolution, like arbitration, mediation, negotiation, and Lok Adalats, which act as people's courts to resolve pending cases amicably. There are even mobile village-level courts called Gram Nyayalayas for decentralized justice."
+  },
+  {
+    "turn_id": "0054",
+    "speaker": "Host 2",
+    "text": "So basically, the judiciary isn't just a rigid building with judges in robes—it is a massive, evolving system dedicated to fairness, rights, and making justice accessible to everyone. I am Ema."
+  },
+  {
+    "turn_id": "0055",
+    "speaker": "Host 1",
+    "text": "And I am Jos. Thanks for tuning in, everyone!"
+  }
+]

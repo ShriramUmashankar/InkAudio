@@ -2,7 +2,7 @@
 
 Drop a PDF. Get a podcast. Two AI hosts debate your document, sound natural, and produce a finished MP3.
 
-InkAudio is a local, CLI-first pipeline that turns any PDF into a two-host podcast episode. A LangGraph actor-critic loop iteratively refines the script, voices are synthesized per turn, and every segment is stitched into a single audio file.
+InkAudio is a local app with a web interface and CLI that turns any PDF into a two-host podcast episode. A LangGraph actor-critic loop iteratively refines the script, voices are synthesized per turn, and every segment is stitched into a single audio file.
 
 ![Pipeline](flowchart.svg)
 
@@ -13,11 +13,52 @@ InkAudio is a local, CLI-first pipeline that turns any PDF into a two-host podca
 ```bash
 pip install -r requirements.txt
 cp .env.example .env           # add GEMINI_API_KEY
-python models/download_models.py  # fetch Qwen3-TTS checkpoints
+python models/download_models.py  # fetch Qwen3-TTS and STT checkpoints
 python -m src.pipeline --pdf Content/input.pdf
 ```
 
 That's it. The pipeline runs end-to-end: ingest → script → TTS → stitch → `Audio/final_podcast.mp3`.
+
+### Run the web app
+
+From the project root (`PodcastGeneration/`), after installing dependencies:
+
+```bash
+uvicorn src.api.main:app --host 0.0.0.0 --port 8000
+```
+
+Open [the app](http://localhost:8000), [Examples](http://localhost:8000/examples.html),
+or [API documentation](http://localhost:8000/docs). Stop the server with Ctrl+C.
+Examples play saved audio without making LLM or TTS calls. Generation requires
+the API keys for the selected mode and local models for Qwen.
+
+For CUDA memory fragmentation, restart the server with this optional allocator setting:
+
+```bash
+PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True uvicorn src.api.main:app --host 0.0.0.0 --port 8000
+```
+
+This setting can reduce fragmentation; it does not add VRAM or guarantee that
+long turns fit. The Qwen RAM-cache retry also does not eliminate every OOM.
+
+### Examples
+
+All four episodes are available on the Examples page, after Result in the navigation.
+Playback includes two host portraits, a centered frequency animation, synchronized
+turn captions with fade transitions, and seeking.
+
+| Episode | Subject / class | Voices |
+|---------|-----------------|--------|
+| Magnetism-Tamil | Physics · Class 6 | Bodhan · Arun and Anitha |
+| Changes Around Us - Hindi | Chemistry · Class 7 | Bodhan · Amit and Raagini |
+| Judiciary-English | Political Science · Class 8 | Qwen Voice Design · Jos and Ema |
+| Cell-English | Biology · Class 8 | Qwen Custom Voice · Jos and Ema |
+
+Each episode uses `final_podcast.mp3`, `script.json`, and `timeline.json` in
+`podcast_examples/`. The Hindi episode retains the asset folder `Chemistry-Hindi`;
+Judiciary and Cell use `Judiciary-English-Voice-Design` and
+`Cell-English-Custom-Voice`. These saved examples are separate from generated jobs
+in `.api_tmp/` and from CLI output in `Content/` and `Audio/`.
 
 ---
 
@@ -71,6 +112,15 @@ Set `tts.mode` in `config.yaml`:
 - **`bodhan`** — Cloud API, 45+ Indian voices. Each host gets a voice name from the template.
 - **`custom_voice`** — Local Qwen3-TTS 1.7B (4-bit quantized), 9 preset speakers with style instructions.
 - **`voice_design`** — Local Qwen3-TTS 1.7B, natural-language voice descriptions per host.
+
+If Qwen runs out of CUDA memory during a turn, it retries that complete turn
+once with its attention cache offloaded to system RAM. The model weights stay
+on the GPU, and later turns return to their original cache setting. Offloading
+is slower and may not resolve OOM in audio decoding or other temporary tensors.
+If the retry fails, the website reports the error; the CLI keeps its existing
+behavior of skipping failed turns.
+CUDA loading uses BF16 for unquantized components, including the audio decoder,
+while retaining 4-bit model quantization. CPU loading uses FP32.
 
 ### Indic podcasts with Bodhan
 
@@ -155,6 +205,8 @@ models/           # Local Qwen3-TTS checkpoints (download via models/download_mo
 src/              # Pipeline modules (see src/README.md)
 docs/             # Flowchart and design docs
 web/              # Web UI (HTML/CSS/JS)
+podcast_examples/ # Saved example MP3s, scripts, and playback timelines
+.api_tmp/         # Temporary files for the active website job
 ```
 
 ---
@@ -180,6 +232,7 @@ The revision graph (Editor → Critic → Router) compares original vs updated s
 
 ```bash
 ~/.local/bin/pytest tests/ -q   # mocked LLM/translation/TTS
+node web/js/regressions.test.cjs  # web playback/progress regression checks
 ```
 
 ---

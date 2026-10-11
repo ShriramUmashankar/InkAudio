@@ -1,5 +1,6 @@
 import json
 import io
+import gc
 import os
 import random
 import re
@@ -72,6 +73,7 @@ def _load_model(settings: Settings):
         return Qwen3TTSModel.from_pretrained(
             local_path,
             device_map=device,
+            dtype=dtype,
             quantization_config=quant
         )
     except Exception as e:
@@ -79,6 +81,7 @@ def _load_model(settings: Settings):
         return Qwen3TTSModel.from_pretrained(
             hf_repo,
             device_map=device,
+            dtype=dtype,
             quantization_config=quant
         )
 
@@ -138,28 +141,47 @@ def _synth_one(model, turn: Dict[str, str], settings: Settings, template: Dict, 
     generator = torch.Generator(device=device).manual_seed(settings.tts.seed)
 
     try:
+        host_cfg = template.get("host1" if turn["speaker"] == "Host 1" else "host2") or {}
+        kwargs = dict(text=turn["text"], language=settings.tts.language,
+                      instruct=host_cfg.get("instruct", ""), generator=generator)
         if mode == "custom_voice":
-            host_cfg = template.get("host1") if turn["speaker"] == "Host 1" else template.get("host2")
-            voice = host_cfg.get("speaker") if host_cfg else "ryan"
-            instruct = host_cfg.get("instruct") if host_cfg else ""
-            wavs, sr = model.generate_custom_voice(
-                text=turn["text"],
-                language=settings.tts.language,
-                speaker=voice,
-                instruct=instruct,
-                generator=generator,
-            )
+            generate = model.generate_custom_voice
+            kwargs["speaker"] = host_cfg.get("speaker", "ryan")
         elif mode == "voice_design":
-            host_cfg = template.get("host1") if turn["speaker"] == "Host 1" else template.get("host2")
-            instruct = host_cfg.get("instruct") if host_cfg else ""
-            wavs, sr = model.generate_voice_design(
-                text=turn["text"],
-                language=settings.tts.language,
-                instruct=instruct,
-                generator=generator,
-            )
+            generate = model.generate_voice_design
         else:
             raise ValueError(f"Unknown TTS mode: {mode}")
+
+        # Qwen currently drops the generator kwarg internally, so also preserve
+        # the global sampling state when restarting a failed turn.
+        cpu_rng = torch.get_rng_state()
+        cuda_rng = torch.cuda.get_rng_state(device) if device.startswith("cuda") else None
+        oom = False
+        try:
+            wavs, sr = generate(**kwargs)
+        except torch.cuda.OutOfMemoryError:
+            oom = True
+
+        if oom:
+            # Retry OUTSIDE the except block: its traceback otherwise keeps the
+            # failed generation's tensors alive, defeating empty_cache().
+            gc.collect()
+            torch.cuda.empty_cache()
+            if check_cancel:
+                check_cancel()
+            print(f"[tts] CUDA OOM for turn {turn['turn_id']}; retrying with attention cache in RAM")
+            torch.set_rng_state(cpu_rng)
+            if cuda_rng is not None:
+                torch.cuda.set_rng_state(cuda_rng, device)
+            generator.manual_seed(settings.tts.seed)
+            # Qwen's wrapper drops cache_implementation from generation kwargs.
+            config = model.model.talker.generation_config
+            original_cache = config.cache_implementation
+            try:
+                config.cache_implementation = "offloaded"
+                wavs, sr = generate(**kwargs)
+            finally:
+                config.cache_implementation = original_cache
 
         if len(wavs) == 0 or len(wavs[0]) == 0:
             raise RuntimeError(f"Qwen returned empty audio for turn {turn['turn_id']}")

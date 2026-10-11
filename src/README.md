@@ -12,6 +12,16 @@ The `src.pipeline` module is the CLI entrypoint. It orchestrates the full pipeli
 
 ## How to Run
 
+### Web app
+
+```bash
+uvicorn src.api.main:app --host 0.0.0.0 --port 8000
+```
+
+Open http://localhost:8000, saved examples at `/examples.html`, and API docs at
+`/docs`. Stop with Ctrl+C. See the root [README](../README.md#run-the-web-app)
+for the optional CUDA allocator setting and its OOM limitations.
+
 ### Fresh generation (all stages)
 
 ```bash
@@ -66,6 +76,7 @@ Loads `script.json`, sends your notes + the full script to the revision graph, m
 | `--revise` | off | Run revision loop from feedback file |
 | `--feedback <path>` | `Content/feedback.txt` | Path to feedback notes for `--revise` |
 | `--config <path>` | `config.yaml` | Custom config YAML path |
+| `--language <code>` | `tts.podcast_language` | Podcast language for Bodhan (e.g. `hi`, `ta`) |
 
 ---
 
@@ -78,10 +89,12 @@ Loads `script.json`, sends your notes + the full script to the revision graph, m
 | `ingest.py` | `convert_pdf()` and `convert_questions_pdf()` use docling to convert PDFs to Markdown. Idempotent (skips if `.md` exists unless `--force-ingest`). |
 | `graph.py` | LangGraph `StateGraph`: Actor → Critic → Router for script generation. Also `build_revision_graph()` for the Editor → Critic → Router revision loop. |
 | `script_gen.py` | `generate_script()` runs the graph, re-numbers turns globally (`0001`…), writes `script.json`, then synthesizes + stitches. `revise_script()` handles the revision flow. |
-| `tts.py` | `synthesize_all()` loads Qwen3-TTS (local 4-bit → HF fallback) or calls Bodhan API. Supports `custom_voice`, `voice_design`, and `bodhan` modes. Writes per-turn WAVs with deterministic seeds. |
+| `tts.py` | Loads Qwen3-TTS (4-bit, BF16 CUDA / FP32 CPU) or calls Bodhan API. Supports `custom_voice`, `voice_design`, and `bodhan`. Qwen CUDA OOM retries the full turn once with its attention cache in RAM, restoring sampling state and cache settings afterward; long turns can still fail. CLI Qwen skips failures; the website reports strict errors. Bodhan chunks long turns into one WAV. |
+| `translation.py` / `bodhan.py` | Indic Bodhan dialogue translation, language validation, provider requests, retries, rate limiting, and cancellation. Revisions translate only changed turns. |
 | `stitch.py` | `stitch()` sorts WAVs by numeric `turn_id`, concatenates with `silence_ms` gaps via pydub, exports `final_podcast.mp3`. Writes `timeline.json`. |
 | `evaluator.py` | Classifies questions from the questions PDF as answerable vs unanswerable against the content. |
 | `pipeline.py` | CLI entrypoint. Parses arguments and dispatches stages. Also supports `--revise`. |
+| `api/` | FastAPI routes, cooperative single-job worker, status/SSE snapshots, temporary job files, and static website/example serving. |
 
 ---
 
@@ -90,8 +103,8 @@ Loads `script.json`, sends your notes + the full script to the revision graph, m
 | File | Purpose |
 |------|---------|
 | `config.yaml` | LLM endpoints, TTS mode/voices, pipeline params (`max_loops`, `silence_ms`, etc.) |
-| `.env` | `GEMINI_API_KEY`, `BODHAN_TTS` |
-| `src/tts_requirements/bodhan.yaml` | Bodhan host voice names and languages |
+| `.env` | `GEMINI_API_KEY`, `BODHAN_TTS`, `BODHAN_TRANSLATION` |
+| `src/tts_requirements/bodhan.yaml` | Bodhan host voice names and optional styles; shared podcast language comes from settings |
 | `src/tts_requirements/custom_voice.yaml` | Qwen speaker names and style instructions |
 | `src/tts_requirements/voice_design.yaml` | Per-host natural-language voice descriptions |
 
@@ -103,6 +116,8 @@ Loads `script.json`, sends your notes + the full script to the revision graph, m
 |----------|----------|---------|
 | `GEMINI_API_KEY` | Yes | Single key for both actor and critic LLMs |
 | `BODHAN_TTS` | Only if `tts.mode: bodhan` | Bodhan TTS API key |
+| `BODHAN_TRANSLATION` | Only for Indic Bodhan podcasts | Dialogue translation API key |
+| `PYTORCH_CUDA_ALLOC_CONF` | No | Optional CUDA allocator tuning; `expandable_segments:True` can reduce fragmentation but does not add VRAM |
 | `STT_DEVICE` | No | STT compute device (`cuda` / `cpu`) |
 | `STT_COMPUTE_TYPE` | No | STT compute type (`float16` / `int8`) |
-| `STT_MODEL` | No | STT model path (default: `small.en`) |
+| `STT_MODEL` | No | Override the STT model in `config.yaml`; fallback if unset there: `small.en` |
