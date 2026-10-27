@@ -2,6 +2,8 @@
 
 InkAudio turns a PDF into a two-host podcast, with a web interface and CLI. An actor-critic loop refines the script, optional Indic translation adapts the dialogue, and speech synthesis produces a downloadable MP3. Choose Docker Lite for the easiest evaluation setup, or install the full project locally to use Qwen voices and transcription.
 
+![InkAudio pipeline flowchart: PDF ingestion, script generation and review, speech synthesis, and audio stitching](flowchart.svg)
+
 ## Docker Lite (recommended for evaluation)
 
 Lite runs on CPU and includes PDF conversion, Bodhan speech and Indic translation,
