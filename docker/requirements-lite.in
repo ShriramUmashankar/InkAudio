@@ -1,0 +1,20 @@
+# Regenerate the universal lock with uv pip compile (see docker/README.md).
+--extra-index-url https://download.pytorch.org/whl/cpu
+docling[rapidocr]==2.121.0
+rapidocr==3.9.2
+langgraph==1.2.11
+openai==2.54.0
+pydub==0.25.1
+requests==2.33.1
+soundfile==0.14.0
+pyyaml==6.0.3
+python-dotenv==1.2.2
+fastapi==0.136.0
+uvicorn==0.44.0
+python-multipart==0.0.26
+numpy==2.2.6
+transformers==4.57.3
+torch==2.7.1+cpu ; platform_machine == 'x86_64'
+torch==2.7.1 ; platform_machine == 'aarch64'
+torchvision==0.22.1+cpu ; platform_machine == 'x86_64'
+torchvision==0.22.1 ; platform_machine == 'aarch64'

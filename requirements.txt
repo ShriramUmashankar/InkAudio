@@ -13,3 +13,5 @@ pytest
 fastapi
 uvicorn
 faster-whisper
+qwen-tts
+python-multipart

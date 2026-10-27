@@ -19,15 +19,16 @@
   <div class="field">
     <label class="lbl">Audio file</label>
     <div class="drop">
-      <input type="file" id="file" accept="audio/*,video/mp4,.mp4,.m4a">
+      <input type="file" id="file" data-stt-control accept="audio/*,video/mp4,.mp4,.m4a">
       <span class="drop-inner" id="file-name">Select or drop an audio file</span>
     </div>
   </div>
   <div class="row">
-    <button class="primary" id="go">Transcribe</button>
-    <button id="mic-btn">Record voice</button>
+    <button class="primary" id="go" data-stt-control>Transcribe</button>
+    <button id="mic-btn" data-stt-control>Record voice</button>
     <span class="muted" id="mic-status"></span>
   </div>
+  <p class="muted" data-lite-notice hidden>Transcription is unavailable in Lite. Use typed feedback on the Result page.</p>
   <div class="alert" id="error" hidden></div>
   <p class="muted" id="status"></p>
 </main>
@@ -73,7 +74,7 @@ async function runTranscribe(file) {
   errorEl.hidden = true;
   statusEl.textContent = "Transcribing (first run loads the model, this can be slow)…";
   const r = await transcribe(file);
-  goBtn.disabled = false;
+  goBtn.disabled = goBtn.dataset.liteDisabled === "true";
   if (r.ok) showTranscript(r.body.transcript);
   else {
     statusEl.textContent = "";

@@ -1,246 +1,70 @@
 # InkAudio
 
-Drop a PDF. Get a podcast. Two AI hosts debate your document, sound natural, and produce a finished MP3.
+InkAudio turns a PDF into a two-host podcast, with a web interface and CLI. An actor-critic loop refines the script, optional Indic translation adapts the dialogue, and speech synthesis produces a downloadable MP3. Choose Docker Lite for the easiest evaluation setup, or install the full project locally to use Qwen voices and transcription.
 
-InkAudio is a local app with a web interface and CLI that turns any PDF into a two-host podcast episode. A LangGraph actor-critic loop iteratively refines the script, voices are synthesized per turn, and every segment is stitched into a single audio file.
+## Docker Lite (recommended for evaluation)
 
-![Pipeline](flowchart.svg)
+Lite runs on CPU and includes PDF conversion, Bodhan speech and Indic translation,
+typed feedback/revisions, and all four saved examples. **Qwen generation and
+speech-to-text are disabled.** No GPU or local Python installation is needed.
 
----
-
-## Quickstart
+Install Docker with Compose (Docker Desktop with Linux containers on Windows/macOS),
+then clone and start the app:
 
 ```bash
-pip install -r requirements.txt
-cp .env.example .env           # add GEMINI_API_KEY
-python models/download_models.py  # fetch Qwen3-TTS and STT checkpoints
-python -m src.pipeline --pdf Content/input.pdf
+git clone https://github.com/ShriramUmashankar/InkAudio.git
+cd InkAudio
+cp .env.example .env
 ```
 
-That's it. The pipeline runs end-to-end: ingest → script → TTS → stitch → `Audio/final_podcast.mp3`.
-
-### Run the web app
-
-From the project root (`PodcastGeneration/`), after installing dependencies:
+Edit `.env`: set `GEMINI_API_KEY` and `BODHAN_TTS` for generation, plus
+`BODHAN_TRANSLATION` for Indic podcasts. **The default language is Tamil**;
+select English in the app to skip translation. Saved examples work without keys.
+In Windows PowerShell, use `Copy-Item .env.example .env` instead of `cp`.
 
 ```bash
+docker compose up --build
+```
+
+Open http://localhost:8000. Upload a PDF on Generate, or visit Examples to play
+saved episodes. The first build downloads dependencies and PDF/OCR models;
+live generation requires internet and valid API credentials.
+
+Stop with Ctrl+C, then `docker compose down`. Download your MP3 before finishing
+or stopping the app; generated jobs are temporary. If port 8000 is busy, add
+`PODCAST_PORT=8001` to `.env` and open http://localhost:8001.
+See [Docker details and troubleshooting](docker/README.md) for resources and verification.
+
+## Full project (native installation)
+
+Manage Python, system dependencies, and local speech models yourself. Use Python
+3.11 and install **FFmpeg and SoX** on your system (`sudo apt install ffmpeg sox`
+on Ubuntu/Debian, or `brew install ffmpeg sox` on macOS). Local Qwen generation
+is intended for a compatible NVIDIA/CUDA environment; see the
+[native configuration and hardware notes](src/README.md#native-hardware-and-configuration).
+
+```bash
+git clone https://github.com/ShriramUmashankar/InkAudio.git
+cd InkAudio
+python3.11 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+cp .env.example .env
+```
+
+On Windows, create the environment with `py -3.11 -m venv .venv`, activate it with
+`.venv\Scripts\Activate.ps1`, and copy the environment file with
+`Copy-Item .env.example .env`.
+
+Fill in the same API keys described above, then download the Qwen and transcription
+models and start the web app:
+
+```bash
+python models/download_models.py
 uvicorn src.api.main:app --host 0.0.0.0 --port 8000
 ```
 
-Open [the app](http://localhost:8000), [Examples](http://localhost:8000/examples.html),
-or [API documentation](http://localhost:8000/docs). Stop the server with Ctrl+C.
-Examples play saved audio without making LLM or TTS calls. Generation requires
-the API keys for the selected mode and local models for Qwen.
-
-For CUDA memory fragmentation, restart the server with this optional allocator setting:
-
-```bash
-PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True uvicorn src.api.main:app --host 0.0.0.0 --port 8000
-```
-
-This setting can reduce fragmentation; it does not add VRAM or guarantee that
-long turns fit. The Qwen RAM-cache retry also does not eliminate every OOM.
-
-### Examples
-
-All four episodes are available on the Examples page, after Result in the navigation.
-Playback includes two host portraits, a centered frequency animation, synchronized
-turn captions with fade transitions, and seeking.
-
-| Episode | Subject / class | Voices |
-|---------|-----------------|--------|
-| Magnetism-Tamil | Physics · Class 6 | Bodhan · Arun and Anitha |
-| Changes Around Us - Hindi | Chemistry · Class 7 | Bodhan · Amit and Raagini |
-| Judiciary-English | Political Science · Class 8 | Qwen Voice Design · Jos and Ema |
-| Cell-English | Biology · Class 8 | Qwen Custom Voice · Jos and Ema |
-
-Each episode uses `final_podcast.mp3`, `script.json`, and `timeline.json` in
-`podcast_examples/`. The Hindi episode retains the asset folder `Chemistry-Hindi`;
-Judiciary and Cell use `Judiciary-English-Voice-Design` and
-`Cell-English-Custom-Voice`. These saved examples are separate from generated jobs
-in `.api_tmp/` and from CLI output in `Content/` and `Audio/`.
-
----
-
-## How It Works
-
-The pipeline has five stages (translation is optional) and one feedback loop:
-
-| Stage | What happens |
-|-------|-------------|
-| **Ingest** | PDF → Markdown (via docling). Also optionally parses a questions PDF. |
-| **Script** | A LangGraph `StateGraph` runs Actor → Critic → Router. The Actor drafts turns as JSON, the Critic checks them against the source, and the Router loops back with feedback until approved (max 3 rounds). Answerable questions from the questions PDF are injected as context. |
-| **Translate** | For Indic Bodhan podcasts, translate the full English conversation into native-script code-mixed dialogue. Fall back to consecutive dialogue blocks if necessary. |
-| **TTS** | Each turn is synthesized to its own WAV — Bodhan API for multilingual, Qwen3-TTS for English (custom voice or voice design modes). Longer Bodhan turns are synthesized in short chunks and combined into one turn WAV. |
-| **Stitch** | All WAVs are concatenated with configurable silence gaps into `final_podcast.mp3`. |
-
-**Revision flow:** After generation, write feedback notes to `Content/feedback.txt` and re-run with `--revise`. An Editor identifies which turns to change, a Critic validates the edits against your notes, and only the changed turns are re-synthesized and re-stitched.
-
----
-
-## Usage
-
-```
-python -m src.pipeline [options]
-```
-
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--pdf <path>` | From `config.yaml` | Input content PDF |
-| `--skip-ingest` | off | Skip PDF → Markdown conversion |
-| `--skip-script` | off | Skip script generation (re-TTS existing script) |
-| `--skip-stitch` | off | Skip final MP3 stitching |
-| `--no-tts` | off | Skip TTS entirely (script only) |
-| `--force-ingest` | off | Re-convert PDF even if Markdown exists |
-| `--revise` | off | Run revision loop from `Content/feedback.txt` |
-| `--feedback <path>` | `Content/feedback.txt` | Custom feedback file for `--revise` |
-| `--config <path>` | `config.yaml` | Custom config file |
-| `--language <code>` | `tts.podcast_language` (`en`) | Whole-podcast language, Bodhan only (e.g. `hi`, `ta`) |
-
----
-
-## Configuration
-
-- **`config.yaml`** — All non-secret settings: LLM endpoints, TTS mode, voice config, pipeline parameters.
-- **`.env`** — API keys (`GEMINI_API_KEY` for both actor and critic LLMs, `BODHAN_TTS` for Bodhan TTS, and a separate `BODHAN_TRANSLATION` key for Indic translation).
-- **`src/tts_requirements/*.yaml`** — Per-mode voice templates (`bodhan.yaml`, `custom_voice.yaml`, `voice_design.yaml`).
-
-### TTS Modes
-
-Set `tts.mode` in `config.yaml`:
-
-- **`bodhan`** — Cloud API, 45+ Indian voices. Each host gets a voice name from the template.
-- **`custom_voice`** — Local Qwen3-TTS 1.7B (4-bit quantized), 9 preset speakers with style instructions.
-- **`voice_design`** — Local Qwen3-TTS 1.7B, natural-language voice descriptions per host.
-
-If Qwen runs out of CUDA memory during a turn, it retries that complete turn
-once with its attention cache offloaded to system RAM. The model weights stay
-on the GPU, and later turns return to their original cache setting. Offloading
-is slower and may not resolve OOM in audio decoding or other temporary tensors.
-If the retry fails, the website reports the error; the CLI keeps its existing
-behavior of skipping failed turns.
-CUDA loading uses BF16 for unquantized components, including the audio decoder,
-while retaining 4-bit model quantization. CPU loading uses FP32.
-
-### Indic podcasts with Bodhan
-
-Set `tts.mode: bodhan` and `tts.podcast_language: hi` (or another supported
-code), or override the language on the CLI:
-
-```bash
-python -m src.pipeline --pdf Content/input.pdf --language hi
-python -m src.pipeline --revise --language hi
-```
-
-Both hosts use the selected language with natural English mixing, while keeping
-their individual voices. Hindi produces Hindi-English dialogue; Tamil produces
-Tamil-English dialogue. The language is independent of the voice's recording
-language. Per-host `lang` settings in the Bodhan template are superseded by the
-podcast language; conflicting API host overrides are rejected.
-
-Supported codes: `en`, `as`, `bn`, `brx`, `doi`, `gu`, `hi`, `kn`, `kok`, `ks`,
-`mai`, `ml`, `mni`, `mr`, `ne`, `or`, `pa`, `sa`, `sat`, `sd`, `ta`, `te`, `ur`.
-Alternate-script codes and Romanized output are not exposed.
-
-English bypasses translation. Other languages send the entire numbered dialogue
-to Bodhan `/v1/chat/completions` with `model: indic-translate` and
-`target_script: codemix`; IDs and order are validated before
-publishing. Oversized, truncated or misaligned responses fall back to smaller
-consecutive dialogue blocks. A failure at single-turn size stops the job. No
-transliteration or extra LLM polishing pass is used.
-
-`Content/script_english.json` retains the editable English source;
-`Content/script.json` contains the spoken dialogue, and `script_metadata.json`
-records its language. Revisions edit English and translate only the changed turns;
-unchanged turns retain their existing spoken text and audio. Both scripts are saved
-before TTS, which overwrites only changed spoken turns in the current audio directory
-and then re-stitches the podcast. If Bodhan synthesis fails, the scripts and completed
-WAV replacements remain saved, the error is reported, and stitching does not run.
-Use `python -m src.pipeline --skip-ingest --skip-script` to rebuild audio from the
-saved script after a failure.
-Keep the same language when revising or regenerating
-audio. `--no-tts` still produces the translated spoken script.
-
-The website exposes one language selector in Bodhan mode. Selecting a language
-chooses its native male/female voices for Host 1/Host 2; both dropdowns still
-offer all voices, labeled by recording language. Manual choices survive TTS mode
-switches and reset when the language changes. English uses the template voices.
-API clients pass
-`podcast_language` in the existing multipart JSON `config` field:
-
-```bash
-curl -F 'content_pdf=@Content/input.pdf' \
-  -F 'config={"podcast_language":"ta","host1":{"voice":"Parth"},"host2":{"voice":"Suhani"}}' \
-  http://localhost:8000/api/job/bodhan
-```
-
-`GET /api/tts/languages` returns available codes/names and the configured default.
-The script endpoint and result page use spoken text; status/results include
-`podcast_language`. SSE emits the `translation` stage and `translation_progress`
-with completed/total turns. API script files live only in `.api_tmp/` and follow
-the existing job cleanup lifecycle.
-
-Status includes the current `stage`, `progress`, and `cancel_requested`; SSE sends
-a `snapshot` when connecting and when the job ends. Terminate (or finish during
-generation) returns `cancelling`: the current operation must stop before files
-are removed and another job can start. Failed/terminated status remains available
-until finish or the next job, so refreshing preserves the error. Website generation
-fails if any turn cannot be synthesized, returns empty audio, or cannot be stitched.
-
-Credentials remain in `.env`. Override their environment variable names using
-`tts.bodhan_api_key_env` and `tts.bodhan_translation_api_key_env`. Requests use
-bounded retries, provider rate-limit headers and cancellation-aware waits. A
-failed Bodhan synthesis stops the job rather than silently dropping dialogue.
-Conversational translation/pronunciation quality still needs native-speaker
-listening review; mocked tests verify pipeline behavior only.
-
----
-
-## Project Structure
-
-```
-Content/          # Input PDFs, generated Markdown, script.json, LLM logs
-Audio/            # Per-turn WAVs and final_podcast.mp3
-models/           # Local Qwen3-TTS checkpoints (download via models/download_models.py)
-src/              # Pipeline modules (see src/README.md)
-docs/             # Flowchart and design docs
-web/              # Web UI (HTML/CSS/JS)
-podcast_examples/ # Saved example MP3s, scripts, and playback timelines
-.api_tmp/         # Temporary files for the active website job
-```
-
----
-
-## Revision
-
-```bash
-# After a generation, write feedback
-echo "Make host 2 more energetic in turns 3-5" > Content/feedback.txt
-
-# Re-run with revision
-python -m src.pipeline --revise
-
-# Or use a different feedback file
-python -m src.pipeline --revise --feedback my_notes.txt
-```
-
-The revision graph (Editor → Critic → Router) compares original vs updated script against your notes, loops until approved, then re-synthesizes only the changed turns and re-stitches.
-
----
-
-## Tests
-
-```bash
-~/.local/bin/pytest tests/ -q   # mocked LLM/translation/TTS
-node web/js/regressions.test.cjs  # web playback/progress regression checks
-```
-
----
-
-## Requirements
-
-- Python 3.10+
-- CUDA-capable GPU recommended for local Qwen3-TTS (falls back to CPU)
-- `GEMINI_API_KEY` for LLM calls
-- `BODHAN_TTS` API key if using Bodhan mode
-- `BODHAN_TRANSLATION` API key if selecting an Indic podcast language
+Open http://localhost:8000 and choose Bodhan, Qwen Custom Voice, or Qwen Voice Design.
+Stop with Ctrl+C. The checked-in configuration defaults to Bodhan/Tamil; Qwen
+uses English. See [pipeline, CLI, configuration, and development details](src/README.md)
+for the CLI and optional CPU transcription settings.

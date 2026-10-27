@@ -1,0 +1,11 @@
+services:
+  lite:
+    build: .
+    image: podcast-generation-lite:local
+    env_file: .env
+    environment:
+      PODCAST_LITE: "1"
+    ports:
+      - "127.0.0.1:${PODCAST_PORT:-8000}:8000"
+    init: true
+    stop_grace_period: 2m

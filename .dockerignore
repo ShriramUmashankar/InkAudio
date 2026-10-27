@@ -1,0 +1,14 @@
+# Allowlist the build context: never send secrets, local models, or live job files.
+**
+!Dockerfile
+!docker/
+!docker/**
+!src/
+!src/**
+!web/
+!web/**
+!podcast_examples/
+!podcast_examples/**
+!config.yaml
+**/__pycache__/
+**/*.pyc

@@ -45,13 +45,14 @@
     <textarea id="feedback" rows="4" placeholder="e.g. Make the opening shorter, Host 1 sounds too formal, expand section 3…"></textarea>
     <div class="row">
       <button class="primary" id="revise-btn">Revise</button>
-      <button id="mic-btn">Record voice feedback</button>
+      <button id="mic-btn" data-stt-control>Record voice feedback</button>
       <label class="drop btn-drop" id="voice-drop">
         <span class="drop-inner" id="voice-name">Upload audio…</span>
-        <input type="file" id="voice-file" accept="audio/*,video/mp4,.mp4,.m4a">
+        <input type="file" id="voice-file" data-stt-control accept="audio/*,video/mp4,.mp4,.m4a">
       </label>
       <span class="muted" id="mic-status"></span>
     </div>
+    <p class="muted" data-lite-notice hidden>Speech feedback is unavailable in Lite. Type your feedback above to revise the podcast.</p>
   </section>
 </main>
 <script type="module">

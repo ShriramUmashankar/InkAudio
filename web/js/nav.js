@@ -1,3 +1,5 @@
+import { applyCapabilities } from "./capabilities.js";
+
 export function renderNav(active) {
   const nav = document.getElementById("nav");
   if (!nav) return;
@@ -22,4 +24,5 @@ export function renderNav(active) {
   <nav class="links">${pages.map(([href, label]) =>
     `<a href="${href}" class="${href === active ? "active" : ""}">${label}</a>`
   ).join("")}</nav>`;
+  applyCapabilities().catch(error => console.warn(error.message));
 }

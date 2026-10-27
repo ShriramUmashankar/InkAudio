@@ -35,6 +35,10 @@ export async function getLanguages() {
   return _json(await fetch("/api/tts/languages"));
 }
 
+export async function getCapabilities() {
+  return _json(await fetch("/api/capabilities"));
+}
+
 export async function revise(feedback) {
   return _json(await fetch("/api/job/revise", {
     method: "POST",

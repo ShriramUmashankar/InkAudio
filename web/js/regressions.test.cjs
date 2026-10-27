@@ -6,6 +6,49 @@ const vm = require('node:vm');
 const path = require('node:path');
 const web = path.resolve(__dirname, '..');
 
+for (const lite of [true, false]) {
+  test(`capabilities ${lite ? 'disable only unsupported Lite controls' : 'preserve normal controls'}`, async () => {
+    const modes = ['bodhan', 'custom_voice', 'voice_design'].map(value => ({ value, disabled: false }));
+    // A request may already be in flight when capabilities finish loading.
+    const speech = [{ disabled: true, dataset: {} }, { disabled: false, dataset: {} }];
+    const notices = [{ hidden: true }];
+    const context = {
+      getCapabilities: async () => ({ ok: true, body: {
+        lite, tts_modes: lite ? ['bodhan'] : modes.map(m => m.value), stt_enabled: !lite,
+      } }),
+      document: { querySelectorAll(selector) {
+        if (selector === 'input[name="mode"]') return modes;
+        if (selector === '[data-stt-control]') return speech;
+        if (selector === '[data-lite-notice]') return notices;
+        return [];
+      } },
+    };
+    const source = fs.readFileSync(path.join(__dirname, 'capabilities.js'), 'utf8')
+      .replace(/^import .*;\s*$/gm, '').replace('export async function', 'async function');
+    vm.runInNewContext(source + '\nglobalThis.ready = applyCapabilities();', context);
+    await context.ready;
+    assert.equal(modes[0].disabled, false);
+    assert.equal(modes[1].disabled, lite);
+    assert.equal(modes[2].disabled, lite);
+    assert.equal(speech[0].disabled, true);
+    assert.equal(speech[1].disabled, lite);
+    assert.equal(notices[0].hidden, !lite);
+  });
+}
+
+test('a transcription finishing during Lite initialization cannot re-enable its button', async () => {
+  const html = fs.readFileSync(path.join(web, 'transcribe.html'), 'utf8');
+  const source = html.slice(html.indexOf('async function runTranscribe('), html.indexOf('goBtn.addEventListener('));
+  const context = {
+    goBtn: { disabled: true, dataset: { liteDisabled: 'true' } },
+    errorEl: {}, statusEl: {},
+    transcribe: async () => ({ ok: false, status: 403, body: { detail: 'Unavailable in Lite' } }),
+  };
+  vm.runInNewContext(source + '\nglobalThis.ready = runTranscribe({});', context);
+  await context.ready;
+  assert.equal(context.goBtn.disabled, true);
+});
+
 test('audio frequency energy is mirrored around the canvas center', () => {
   const source = fs.readFileSync(path.join(__dirname, 'examples.js'), 'utf8');
   const draw = source.slice(source.indexOf('function drawSpectrum('), source.indexOf('function setCaption('));
