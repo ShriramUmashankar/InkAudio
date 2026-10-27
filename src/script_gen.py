@@ -1,3 +1,5 @@
+"""Coordinate script generation, aligned translation, feedback revisions, and audio output."""
+
 import json
 from pathlib import Path
 from typing import Dict, List
@@ -19,6 +21,7 @@ from .translation import translate_turns, validate_language_config
 
 
 def _write_json(path, value):
+    """Write UTF-8 JSON to a sibling temporary file, then replace the destination."""
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(".json.tmp")
     temporary.write_text(json.dumps(value, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -51,6 +54,7 @@ def save_revision_scripts(original, spoken, edits, settings, check_cancel=None, 
 
 
 def _publish_scripts(english, spoken, settings):
+    """Persist spoken dialogue and Bodhan source metadata, removing stale metadata for Qwen."""
     base = Path(settings.pipeline.content_dir)
     if settings.tts.mode == "bodhan":
         _write_json(base / "script_english.json", english)
@@ -65,6 +69,11 @@ def _publish_scripts(english, spoken, settings):
 
 
 def load_script_pair(settings):
+    """Load English and spoken scripts, validating saved language and turn alignment.
+
+    Return the spoken script for both values when no separate English source is
+    needed; reject incompatible modes, languages, or missing multilingual sources.
+    """
     base = Path(settings.pipeline.content_dir)
     script = base / "script.json"
     if not script.exists():
@@ -91,11 +100,13 @@ def load_script_pair(settings):
 
 
 def changed_turns(previous, updated):
+    """Return updated turns whose text differs from the previous script by turn ID."""
     before = {t["turn_id"]: t["text"] for t in previous}
     return [t for t in updated if before.get(t["turn_id"]) != t["text"]]
 
 
 def validate_bodhan_settings(settings, require_tts=True, require_translation=True):
+    """Validate the podcast language and required credentials for the requested Bodhan stages."""
     validate_language_config(settings.tts.mode, {}, settings.tts.podcast_language)
     if settings.tts.mode == "bodhan":
         if require_translation and settings.tts.podcast_language != "en" and not settings.tts.bodhan_translation_api_key:
@@ -105,6 +116,7 @@ def validate_bodhan_settings(settings, require_tts=True, require_translation=Tru
 
 
 def _renumber(turns: List[Dict[str, str]], counter: int) -> (List[Dict[str, str]], int):
+    """Copy dialogue into globally numbered turns and return the final counter."""
     out = []
     for t in turns:
         counter += 1
@@ -115,6 +127,7 @@ def _renumber(turns: List[Dict[str, str]], counter: int) -> (List[Dict[str, str]
 def _write_questions_files(
     result: Dict, content_dir: str
 ) -> str:
+    """Write nonempty question categories to Markdown and return answerable question context."""
     base = Path(content_dir)
     answerable = result.get("answerable", [])
     unanswerable = result.get("unanswerable", [])
@@ -148,6 +161,11 @@ def generate_script(
     actor_client: LLMClient = None,
     no_tts: bool = False,
 ) -> List[Dict[str, str]]:
+    """Generate numbered dialogue from Markdown, publish scripts, and optionally produce audio.
+
+    Evaluate available questions before drafting, translate Bodhan dialogue before
+    publishing, and optionally stitch synthesized turns. Return the spoken turns.
+    """
     validate_bodhan_settings(settings, require_tts=not no_tts)
     log_path = settings.pipeline.log_path
     if actor_client is None:
@@ -190,6 +208,11 @@ def generate_script(
 
 
 def revise_script(settings: Settings, feedback_text: str) -> List[Dict[str, str]]:
+    """Apply feedback to an existing script and regenerate audio only for changed spoken turns.
+
+    Translate changed English turns before publishing, then stitch when audio changes.
+    Return the updated spoken script, or the original spoken script when there are no edits.
+    """
     validate_bodhan_settings(settings)
     turns, spoken = load_script_pair(settings)
 
@@ -214,6 +237,7 @@ def revise_script(settings: Settings, feedback_text: str) -> List[Dict[str, str]
 
 
 def regenerate_audio(settings: Settings, do_stitch: bool = True) -> List[Dict[str, str]]:
+    """Load existing spoken turns, synthesize their audio, and optionally stitch the podcast."""
     validate_bodhan_settings(settings, require_translation=False)
     _, turns = load_script_pair(settings)
     print(f"[script] regenerating audio for {len(turns)} existing turns")

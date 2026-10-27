@@ -1,3 +1,5 @@
+"""Coordinate one shared podcast job, worker execution, progress events, and cleanup."""
+
 import asyncio
 import json
 import os
@@ -25,15 +27,18 @@ TEMP_ROOT = _REPO_ROOT / ".api_tmp"
 
 
 class JobBusyError(Exception):
+    """Signal that a new generation request conflicts with the running shared job."""
     pass
 
 
 class _JobCancelled(Exception):
+    """Stop worker processing at a cooperative cancellation checkpoint."""
     pass
 
 
 @dataclass
 class JobRecord:
+    """Hold inputs, lifecycle state, outputs, and SSE listeners for the single current job."""
     tts_mode: str
     temp_dir: str
     content_pdf_path: str
@@ -51,6 +56,7 @@ class JobRecord:
     _sse_listeners: List = field(default_factory=list, repr=False)
 
     def __post_init__(self):
+        """Assign a UTC creation timestamp when the caller has not provided one."""
         if not self.created_at:
             self.created_at = datetime.now(timezone.utc).isoformat()
 
@@ -60,6 +66,7 @@ _model_manager: Optional[ModelManager] = None
 
 
 def get_model_manager_instance() -> ModelManager:
+    """Return the lazily acquired model manager shared by job processing and cleanup."""
     global _model_manager
     if _model_manager is None:
         _model_manager = get_model_manager()
@@ -67,10 +74,12 @@ def get_model_manager_instance() -> ModelManager:
 
 
 def get_current_job() -> Optional[JobRecord]:
+    """Return the retained current job, including a terminal record, or None when idle."""
     return _current_job
 
 
 def _merge_template_overrides(template: Dict, config: Dict) -> Dict:
+    """Merge configured host overrides into the supplied voice template in place."""
     for host in ("host1", "host2"):
         overrides = (config or {}).get(host)
         if overrides:
@@ -81,6 +90,7 @@ def _merge_template_overrides(template: Dict, config: Dict) -> Dict:
 
 
 def create_job(tts_mode: str, config: Dict[str, Any]) -> JobRecord:
+    """Reserve the shared job directory, rejecting a running job and cleaning prior outputs."""
     global _current_job
     if _current_job is not None and _current_job.status == "running":
         raise JobBusyError("generation already in progress")
@@ -100,6 +110,7 @@ def create_job(tts_mode: str, config: Dict[str, Any]) -> JobRecord:
 
 
 def abandon(job: JobRecord):
+    """Release an unsuccessfully uploaded job and remove its temporary directory."""
     global _current_job
     if _current_job is job:
         _current_job = None
@@ -107,6 +118,7 @@ def abandon(job: JobRecord):
 
 
 def finish_job(job: JobRecord):
+    """Release the current job, unload its TTS mode, and remove its temporary files."""
     global _current_job
     if _current_job is not job:
         return
@@ -116,11 +128,13 @@ def finish_job(job: JobRecord):
 
 
 def _cleanup_dir(path: str):
+    """Remove an existing temporary directory, ignoring filesystem cleanup errors."""
     if path and os.path.isdir(path):
         shutil.rmtree(path, ignore_errors=True)
 
 
 def cleanup_on_shutdown():
+    """Flag the current worker for cancellation, clear its record, and remove job files."""
     global _current_job
     if _current_job is not None:
         _current_job.cancel_requested = True
@@ -129,10 +143,12 @@ def cleanup_on_shutdown():
 
 
 def run_job(job: JobRecord):
+    """Schedule asynchronous supervision of generation or revision on the current event loop."""
     asyncio.ensure_future(_run_job(job))
 
 
 async def _run_job(job: JobRecord):
+    """Run work in a thread, publish terminal state, and clean failed or cancelled job assets."""
     try:
         await asyncio.to_thread(_process_job_sync, job)
         _check_cancel(job)
@@ -158,12 +174,17 @@ async def _run_job(job: JobRecord):
 
 
 def _check_cancel(job: JobRecord):
+    """Raise the internal cancellation signal when the job has a pending stop request."""
     # ponytail: cooperative cancel; a mid-flight LLM/TTS call finishes before the flag lands
     if job.cancel_requested:
         raise _JobCancelled()
 
 
 def _process_job_sync(job: JobRecord):
+    """Run ingest, question evaluation, script creation, translation, TTS, and stitching.
+
+    Dispatch revision jobs separately and check cancellation between processing stages and turns.
+    """
     from pathlib import Path as _Path
     from src.tts import _load_template, _synth_one, set_determinism
 
@@ -252,6 +273,7 @@ def _process_job_sync(job: JobRecord):
 
 
 def _process_revision_sync(job: JobRecord, settings, mm):
+    """Revise the English source, translate changed text, and synthesize changed spoken turns."""
     from src.tts import _load_template, _synth_one, set_determinism
 
     _emit_sse(job, "stage_start", {"stage": "revision", "progress": 30})
@@ -291,6 +313,7 @@ def _process_revision_sync(job: JobRecord, settings, mm):
 
 
 def _save_job_scripts(job, settings, english, previous_spoken=None, edits=None):
+    """Save initial or revised scripts with translation progress and cancellation callbacks."""
     translating = job.tts_mode == "bodhan" and settings.tts.podcast_language != "en"
     if translating:
         _emit_sse(job, "stage_start", {"stage": "translation", "progress": 40})
@@ -311,6 +334,7 @@ def _save_job_scripts(job, settings, english, previous_spoken=None, edits=None):
 
 
 def _result_payload(job: JobRecord, turns: List[Dict[str, str]]) -> Dict[str, Any]:
+    """Build result metadata, retrieval URLs, question evaluation, and spoken turns."""
     return {
         "tts_mode": job.tts_mode,
         "podcast_language": job.config.get("podcast_language", "en"),
@@ -325,6 +349,7 @@ def _result_payload(job: JobRecord, turns: List[Dict[str, str]]) -> Dict[str, An
 
 
 def _emit_sse(job: JobRecord, event_type: str, data: Dict[str, Any]):
+    """Update retained progress and enqueue a JSON event on each listener's owning event loop."""
     if "stage" in data:
         job.stage = data["stage"]
     if "progress" in data:

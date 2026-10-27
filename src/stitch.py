@@ -1,3 +1,5 @@
+"""Combine turn WAVs into a podcast MP3 and write synchronized playback timings."""
+
 import json
 import re
 from glob import glob
@@ -9,12 +11,18 @@ from .config import Settings
 
 
 def _turn_id(path: str) -> int:
+    """Extract a numeric turn prefix for audio ordering, defaulting to zero when absent."""
     name = Path(path).stem
     m = re.match(r"(\d+)", name)
     return int(m.group(1)) if m else 0
 
 
 def stitch(settings: Settings, turns=None) -> str | None:
+    """Write final_podcast.mp3 and timeline.json with configured silence between turns.
+
+    Use the supplied turn order and require every WAV when turns are provided; otherwise
+    collect WAVs by numeric filename prefix. Return the MP3 path, or None if no files exist.
+    """
     audio_dir = Path(settings.pipeline.audio_dir)
     if turns is None:
         files = sorted(glob(str(audio_dir / "*.wav")), key=_turn_id)

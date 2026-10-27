@@ -1,4 +1,7 @@
-"""Container checks without API keys: python /opt/lite/smoke.py --pdf [--url URL]."""
+"""Verify Lite HTTP behavior and offline PDF/OCR conversion without provider calls.
+
+Run inside the image with: python /opt/lite/smoke.py --pdf [--url URL].
+"""
 import argparse
 import importlib.util
 import json
@@ -11,7 +14,9 @@ import urllib.request
 
 
 def check_http(url):
+    """Check an idle Lite server's health, restrictions, and example audio ranges."""
     def request(path, data=None, headers=None):
+        """Return status and body for successful responses and HTTP error responses."""
         req = urllib.request.Request(url.rstrip("/") + path, data=data, headers=headers or {})
         try:
             response = urllib.request.urlopen(req, timeout=10)
@@ -36,6 +41,7 @@ def check_http(url):
 
 
 def check_pdfs():
+    """Convert temporary text and scanned PDFs, asserting CPU-only model coverage."""
     import torch
     from PIL import Image, ImageDraw, ImageFont
     sys.path.insert(0, str(Path.cwd()))

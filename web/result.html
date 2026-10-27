@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Play the generated podcast, follow its script, and submit typed or transcribed revisions. -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -56,6 +57,7 @@
   </section>
 </main>
 <script type="module">
+/* Synchronize podcast playback with dialogue and collect revision feedback. */
 import { renderNav } from "./js/nav.js";
 import { getJobStatus, getScript, getTimeline, getQuestions, revise, finishJob, transcribe } from "./js/api.js";
 import { wireDrop, startRecording } from "./js/ui.js";
@@ -80,11 +82,13 @@ wireDrop(voiceFile, document.getElementById("voice-name"), "Upload audio…");
 const turns = [];
 let timeline = [];
 
+/** Format timeline milliseconds as a minute-and-second playback label. */
 function fmt(ms) {
   const s = Math.floor(ms / 1000);
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
+/** Find the dialogue interval containing the current playback time in seconds. */
 function currentTurn(t) {
   const ms = t * 1000;
   return turns.find((t2) => ms >= t2.start_ms && ms < t2.end_ms);
@@ -93,16 +97,20 @@ function currentTurn(t) {
 // --- custom audio player ---
 const PLAY_SVG = `<svg viewBox="0 0 24 24" width="18" height="18"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>`;
 const PAUSE_SVG = `<svg viewBox="0 0 24 24" width="18" height="18"><rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor"/></svg>`;
+/** Keep the transport icon and equalizer animation aligned with audio playback. */
 function syncPlay() {
   playBtn.innerHTML = audio.paused ? PLAY_SVG : PAUSE_SVG;
   player.classList.toggle("playing", !audio.paused);
   document.querySelectorAll(".eq").forEach((e) => e.classList.toggle("playing", !audio.paused));
 }
+// Toggle the generated podcast between playing and paused.
 playBtn.addEventListener("click", async () => {
   if (audio.paused) await audio.play();
   else audio.pause();
 });
+// Set seek limits and the duration label from loaded media metadata.
 audio.addEventListener("loadedmetadata", () => { seek.max = audio.duration; durT.textContent = fmt(audio.duration * 1000); });
+// Advance playback labels and highlight the currently spoken script turn.
 audio.addEventListener("timeupdate", () => {
   seek.value = audio.currentTime;
   curT.textContent = fmt(audio.currentTime * 1000);
@@ -110,10 +118,12 @@ audio.addEventListener("timeupdate", () => {
 });
 audio.addEventListener("play", syncPlay);
 audio.addEventListener("pause", syncPlay);
+// Seek the audio to the position chosen in the range control.
 seek.addEventListener("input", () => { audio.currentTime = seek.value; });
 syncPlay();
 
 // --- synced read-only script ---
+/** Build read-only turn cards that seek and play their corresponding audio intervals. */
 function renderScript() {
   scriptEl.replaceChildren();
   turns.forEach((t) => {
@@ -129,6 +139,7 @@ function renderScript() {
   });
 }
 
+/** Mark the currently spoken turn and keep its card visible. */
 function highlight(t) {
   const cur = currentTurn(t);
   turns.forEach((x) => x.el.classList.remove("current"));
@@ -138,6 +149,7 @@ function highlight(t) {
   }
 }
 
+/** Render nonempty answerable and unanswerable question lists using text content. */
 function renderQuestions(report) {
   if (!report || (!report.answerable?.length && !report.unanswerable?.length)) return;
   const qYes = document.getElementById("q-yes");
@@ -147,6 +159,7 @@ function renderQuestions(report) {
   questionsEl.hidden = false;
 }
 
+// Load a completed job’s script, join its timings by turn ID, and show question reports.
 (async () => {
   const st = await getJobStatus();
   if (!st.ok || st.body.status !== "completed") {
@@ -167,6 +180,7 @@ function renderQuestions(report) {
   renderQuestions(q.body);
 })();
 
+// Submit edited feedback and return to Progress when revision starts.
 reviseBtn.addEventListener("click", async () => {
   const text = feedback.value.trim();
   if (!text) { errorEl.textContent = "Write some feedback first."; errorEl.hidden = false; return; }
@@ -175,6 +189,7 @@ reviseBtn.addEventListener("click", async () => {
   else { errorEl.textContent = r.body?.detail || "Revise failed."; errorEl.hidden = false; }
 });
 
+// Release the completed job before opening a fresh generation form.
 document.getElementById("newpod").addEventListener("click", async (e) => {
   e.preventDefault();
   await finishJob();
@@ -183,6 +198,7 @@ document.getElementById("newpod").addEventListener("click", async (e) => {
 
 // --- voice feedback: record or upload → transcribe → fill textarea ---
 let rec = null;
+// Toggle microphone capture and transcribe stopped audio into editable feedback.
 micBtn.addEventListener("click", async () => {
   if (rec) {
     rec.stop();
@@ -203,6 +219,7 @@ micBtn.addEventListener("click", async () => {
   }
 });
 
+// Transcribe an uploaded feedback recording and clear the input for reuse.
 voiceFile.addEventListener("change", async () => {
   const f = voiceFile.files[0];
   if (!f) return;

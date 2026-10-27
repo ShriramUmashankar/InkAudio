@@ -1,3 +1,5 @@
+"""Synthesize turn WAVs with local Qwen models or chunked Bodhan speech requests."""
+
 import json
 import io
 import gc
@@ -19,6 +21,10 @@ from .bodhan import post_bodhan
 
 
 def _bodhan_chunks(text):
+    """Yield sentence-aware chunks and flags indicating where inter-sentence silence belongs.
+
+    Wrap at 250 characters without splitting words; callers reject oversized tokens.
+    """
     # Conservative size: the API recommends a sentence or two / ~30s per call.
     for sentence_index, sentence in enumerate(re.split(r"(?<=[.!?।॥])\s+", text.strip())):
         for chunk_index, chunk in enumerate(textwrap.wrap(
@@ -28,7 +34,7 @@ def _bodhan_chunks(text):
 
 
 def set_determinism(seed: int):
-    """Force deterministic behavior across all libraries."""
+    """Seed Python, NumPy, and PyTorch and configure deterministic cuDNN behavior."""
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -40,6 +46,10 @@ def set_determinism(seed: int):
 
 
 def _load_model(settings: Settings):
+    """Load the selected quantized Qwen model locally, falling back to its Hugging Face repository.
+
+    Use CUDA with BF16 when available, otherwise CPU with FP32. Return None for Bodhan.
+    """
     mode = settings.tts.mode
     if mode == "bodhan":
         return None
@@ -87,6 +97,7 @@ def _load_model(settings: Settings):
 
 
 def _load_template(settings: Settings) -> Dict:
+    """Read host voice settings from the YAML template for the selected synthesis mode."""
     req_dir = Path(__file__).parent / "tts_requirements"
     mode = settings.tts.mode
     if mode == "custom_voice":
@@ -105,6 +116,13 @@ def _load_template(settings: Settings) -> Dict:
 
 
 def _synth_one(model, turn: Dict[str, str], settings: Settings, template: Dict, check_cancel=None, raise_on_error=False) -> None:
+    """Synthesize one turn to its numbered host WAV, combining chunks for Bodhan.
+
+    Qwen retries CUDA OOM once with its attention cache offloaded to RAM, restoring
+    sampling state before retry and the original cache setting afterward. Qwen
+    failures are logged and suppressed unless raise_on_error is set; Bodhan errors
+    propagate and cancellation is checked between provider calls and before saving.
+    """
     out = Path(settings.pipeline.audio_dir) / f"{turn['turn_id']}_{turn['speaker']}.wav"
     mode = settings.tts.mode
 
@@ -194,6 +212,7 @@ def _synth_one(model, turn: Dict[str, str], settings: Settings, template: Dict, 
 
 
 def synthesize_turns(turns: List[Dict[str, str]], settings: Settings) -> None:
+    """Load the configured model and template once, then synthesize the supplied turns in order."""
     if not turns:
         print("[tts] no turns to synthesize")
         return
@@ -211,8 +230,10 @@ def synthesize_turns(turns: List[Dict[str, str]], settings: Settings) -> None:
 
 
 def synthesize_all(turns: List[Dict[str, str]], settings: Settings) -> None:
+    """Synthesize audio for every turn in the supplied script."""
     synthesize_turns(turns, settings)
 
 
 def synthesize_turn(turn: Dict[str, str], settings: Settings) -> None:
+    """Synthesize a single turn using the configured model and host template."""
     synthesize_turns([turn], settings)

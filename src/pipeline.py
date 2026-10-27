@@ -1,3 +1,5 @@
+"""Run podcast ingestion, script generation, revision, and audio stages from the CLI."""
+
 import argparse
 from pathlib import Path
 
@@ -8,6 +10,7 @@ from .translation import LANGUAGES, validate_language_config
 
 
 def main() -> None:
+    """Parse CLI overrides and run revision or the requested ingestion, script, and audio stages."""
     p = argparse.ArgumentParser(description="Local PDF -> 2-host podcast pipeline")
     p.add_argument("--pdf", default=None, help="PDF path (overrides config)")
     p.add_argument("--skip-ingest", "--skip-ingestion", dest="skip_ingest", action="store_true")

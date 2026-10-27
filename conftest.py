@@ -1,3 +1,5 @@
+"""Make repository modules importable when pytest discovers tests from the root."""
+
 import os
 import sys
 

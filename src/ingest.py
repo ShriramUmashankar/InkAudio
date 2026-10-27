@@ -1,12 +1,16 @@
+"""Convert source and question PDFs to reusable Markdown files with Docling."""
+
 from pathlib import Path
 
 
 def md_path_for(pdf_path: str, content_dir: str) -> Path:
+    """Return the content-directory Markdown path derived from the PDF filename."""
     pdf = Path(pdf_path)
     return Path(content_dir) / f"{pdf.stem}.md"
 
 
 def convert_pdf(pdf_path: str, content_dir: str = "Content", force: bool = False) -> str:
+    """Convert a PDF to Markdown and return its path, reusing an existing file unless forced."""
     out = md_path_for(pdf_path, content_dir)
     if out.exists() and not force:
         print(f"[ingest] {out} already exists, skipping (use force=True to reconvert).")
@@ -23,6 +27,7 @@ def convert_pdf(pdf_path: str, content_dir: str = "Content", force: bool = False
 
 
 def convert_questions_pdf(questions_pdf_path: str, content_dir: str = "Content") -> str:
+    """Convert questions to content_dir/questions.md, reusing an existing Markdown file."""
     out = Path(content_dir) / "questions.md"
     if out.exists():
         print(f"[ingest] {out} already exists, skipping questions conversion.")

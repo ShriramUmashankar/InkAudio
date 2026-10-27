@@ -1,3 +1,5 @@
+"""Call OpenAI-compatible LLM endpoints with shared pacing, retries, and JSON parsing."""
+
 import json
 import re
 import threading
@@ -14,6 +16,7 @@ _last_call = 0.0
 
 
 def _pace():
+    """Serialize request starts across clients and wait for the shared minimum interval."""
     global _last_call
     with _rate_lock:
         wait = _MIN_INTERVAL - (time.monotonic() - _last_call)
@@ -31,6 +34,7 @@ class LLMClient:
         retries: int = 3,
         log_path: str | None = None,
     ):
+        """Configure an SDK client and retry count, creating the optional log directory."""
         self.model = model
         self._client = OpenAI(base_url=base_url, api_key=api_key)
         self._retries = retries
@@ -40,6 +44,7 @@ class LLMClient:
             Path(log_path).parent.mkdir(parents=True, exist_ok=True)
 
     def _log(self, node_label: str, response: str) -> None:
+        """Append a labeled, numbered response to the Markdown log when logging is configured."""
         if not self._log_path:
             return
         self._call_count += 1
@@ -52,6 +57,11 @@ class LLMClient:
             f.write(f"{response}\n")
 
     def chat(self, system_prompt: str, user_prompt: str, **kwargs: Any) -> str:
+        """Return a completion using shared pacing, response logging, and bounded retries.
+
+        Forward generation options to the SDK after removing node_label, which labels
+        the local log. Raise RuntimeError when every attempt fails.
+        """
         node_label = kwargs.pop("node_label", "")
         last_err: Exception | None = None
         for attempt in range(1, self._retries + 1):
@@ -77,8 +87,8 @@ class LLMClient:
 def extract_json(text: str) -> Any | None:
     """Recover a JSON object or array from loose LLM output.
 
-    Handles ```json fences, prose wrapping, and trailing commentary by
-    finding the first balanced {...} or [...] block.
+    Remove an optional code fence, then try balanced array and object blocks
+    within surrounding prose. Return None when neither candidate parses.
     """
     if text is None:
         return None

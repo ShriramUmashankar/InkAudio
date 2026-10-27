@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Download all 2 Qwen3-TTS model checkpoints to models/ subfolders."""
+"""Download both Qwen voice models and the Whisper transcription model locally."""
 import sys
 from pathlib import Path
 from huggingface_hub import snapshot_download
@@ -11,6 +11,7 @@ MODELS = {
 }
 
 def download_model(model_name: str, hf_repo: str, out_dir: Path) -> bool:
+    """Fetch a checkpoint into its local folder, returning False on download failure."""
     print(f"[download] {model_name} from {hf_repo} -> {out_dir}")
     try:
         # snapshot_download is natively idempotent; it only downloads missing or updated files.
@@ -26,6 +27,7 @@ def download_model(model_name: str, hf_repo: str, out_dir: Path) -> bool:
         return False
 
 def main() -> int:
+    """Download all configured checkpoints and return a nonzero exit code if any fail."""
     root = Path(__file__).parent
     all_ok = True
     for name, repo in MODELS.items():

@@ -1,3 +1,5 @@
+"""Load typed pipeline settings from YAML and resolve credentials from the environment."""
+
 import os
 from dataclasses import dataclass
 from typing import Any, Dict
@@ -58,6 +60,7 @@ class Settings:
 
 
 def _resolve_key(env_name: str) -> str:
+    """Return a required environment credential or raise a configuration error."""
     key = os.environ.get(env_name, "")
     if not key:
         raise RuntimeError(
@@ -68,6 +71,7 @@ def _resolve_key(env_name: str) -> str:
 
 
 def _llm_from(cfg: Dict[str, Any]) -> LLMConfig:
+    """Build endpoint settings from YAML fields and resolve the named API credential."""
     env_name = cfg["api_key_env"]
     return LLMConfig(
         base_url=cfg["base_url"],
@@ -78,6 +82,7 @@ def _llm_from(cfg: Dict[str, Any]) -> LLMConfig:
 
 
 def _stt_from(cfg: Dict[str, Any]) -> STTConfig:
+    """Build transcription settings, giving STT environment overrides precedence over YAML."""
     return STTConfig(
         device=os.environ.get("STT_DEVICE", cfg.get("device", "cpu")),
         compute_type=os.environ.get("STT_COMPUTE_TYPE", cfg.get("compute_type", "int8")),
@@ -86,6 +91,10 @@ def _stt_from(cfg: Dict[str, Any]) -> STTConfig:
 
 
 def load_settings(path: str = "config.yaml") -> Settings:
+    """Load .env and YAML settings, requiring the configured actor and critic credentials.
+
+    Bodhan credentials remain optional here; stage-specific validation checks them before use.
+    """
     load_dotenv()
     with open(path, "r", encoding="utf-8") as f:
         raw = yaml.safe_load(f)

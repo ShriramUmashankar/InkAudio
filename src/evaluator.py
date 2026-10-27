@@ -1,3 +1,5 @@
+"""Classify questions by whether the supplied source content can answer them."""
+
 from typing import Dict, List
 
 from .graph import EVALUATOR_SYSTEM_PROMPT
@@ -9,6 +11,11 @@ def evaluate_questions(
     content_md: str,
     client: LLMClient,
 ) -> Dict[str, List[Dict]]:
+    """Ask the LLM to classify questions against the content and return both categories.
+
+    Treat statuses other than answerable as unanswerable flags; invalid top-level
+    responses produce empty categories and non-object entries are ignored.
+    """
     user = (
         f"QUESTIONS:\n<<<\n{questions_md}\n>>>\n\n"
         f"CONTENT:\n<<<\n{content_md}\n>>>\n\n"

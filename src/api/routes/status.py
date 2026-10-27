@@ -1,3 +1,5 @@
+"""Expose current job snapshots, generated assets, question reports, and SSE updates."""
+
 import asyncio
 import json
 from pathlib import Path
@@ -12,6 +14,7 @@ router = APIRouter()
 
 
 def _snapshot(job):
+    """Serialize retained lifecycle and progress fields for polling and SSE snapshots."""
     return {
         "status": job.status,
         "tts_mode": job.tts_mode,
@@ -27,12 +30,14 @@ def _snapshot(job):
 
 @router.get("/api/job")
 async def job_status():
+    """Return the current job snapshot or an idle status when no record exists."""
     job = job_queue.get_current_job()
     return _snapshot(job) if job else {"status": "idle"}
 
 
 @router.get("/api/job/result")
 async def get_result():
+    """Serve the current job MP3 when the generated file exists."""
     job = job_queue.get_current_job()
     if job is None:
         raise HTTPException(status_code=404, detail="no job")
@@ -44,6 +49,7 @@ async def get_result():
 
 @router.get("/api/job/script")
 async def get_script():
+    """Serve the current job spoken script when its JSON file exists."""
     job = job_queue.get_current_job()
     if job is None:
         raise HTTPException(status_code=404, detail="no job")
@@ -55,6 +61,7 @@ async def get_script():
 
 @router.get("/api/job/timeline")
 async def get_timeline():
+    """Return generated turn timings for synchronizing podcast playback."""
     job = job_queue.get_current_job()
     if job is None:
         raise HTTPException(status_code=404, detail="no job")
@@ -66,6 +73,7 @@ async def get_timeline():
 
 @router.get("/api/job/questions")
 async def get_questions():
+    """Return the current job question evaluation report when one is available."""
     job = job_queue.get_current_job()
     if job is None or not job.questions_report:
         raise HTTPException(status_code=404, detail="no questions report")
@@ -74,11 +82,13 @@ async def get_questions():
 
 @router.get("/api/job/events")
 async def job_events():
+    """Stream progress events and initial and terminal snapshots for the current job."""
     job = job_queue.get_current_job()
     if job is None:
         raise HTTPException(status_code=404, detail="no job")
 
     async def event_generator() -> AsyncIterator[str]:
+        """Register a listener, send snapshots and queued events with keepalives, then detach."""
         loop = asyncio.get_running_loop()
         listener = asyncio.Queue()
         job._sse_listeners.append((listener, loop))

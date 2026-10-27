@@ -18,6 +18,7 @@ LANGUAGES = {
 
 
 def validate_language_config(mode, config, default="en"):
+    """Return a supported podcast language or reject incompatible mode and host settings."""
     if not isinstance(config, dict):
         raise ValueError("config must be a JSON object")
     language = config.get("podcast_language", default)
@@ -36,10 +37,12 @@ def validate_language_config(mode, config, default="en"):
 
 
 def _serialize(turns):
+    """Render dialogue as Markdown with turn-ID headings for translation alignment."""
     return "\n\n".join(f"## `{t['turn_id']}` — {t['speaker']}\n\n{t['text']}" for t in turns)
 
 
 def _parse(text, turns):
+    """Apply translated text to copies of turns, rejecting missing, reordered, or empty blocks."""
     if not isinstance(text, str):
         raise ValueError("translation is not text")
     headings = list(re.finditer(r"^##[ \t]+.*$", text, re.MULTILINE))
@@ -70,6 +73,11 @@ def translate_turns(turns, settings, check_cancel=None, on_progress=None):
     completed = 0
 
     def block(source):
+        """Translate a turn block, recursively splitting oversized or misaligned responses.
+
+        Count accepted turns for progress callbacks; fail if a single turn cannot be
+        translated completely while preserving its marker.
+        """
         nonlocal completed
         if check_cancel:
             check_cancel()

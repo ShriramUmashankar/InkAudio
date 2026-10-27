@@ -1,5 +1,7 @@
+/* Render shared page navigation and initialize server-dependent feature controls. */
 import { applyCapabilities } from "./capabilities.js";
 
+/** Build shared navigation, mark the active page, and apply server capabilities. */
 export function renderNav(active) {
   const nav = document.getElementById("nav");
   if (!nav) return;
@@ -11,6 +13,7 @@ export function renderNav(active) {
     ["examples.html", "Examples"],
     ["transcribe.html", "Transcribe"],
   ];
+  // Render each route with its active-state class alongside the shared brand.
   nav.innerHTML = `
   <div class="brand">
     <svg class="brand-mark" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">
@@ -24,5 +27,6 @@ export function renderNav(active) {
   <nav class="links">${pages.map(([href, label]) =>
     `<a href="${href}" class="${href === active ? "active" : ""}">${label}</a>`
   ).join("")}</nav>`;
+  // Keep navigation usable if feature discovery fails, while logging its cause.
   applyCapabilities().catch(error => console.warn(error.message));
 }

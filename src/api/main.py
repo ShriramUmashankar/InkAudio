@@ -1,3 +1,5 @@
+"""Assemble the FastAPI app, feature middleware, API routes, and static assets."""
+
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -40,6 +42,7 @@ if _web.is_dir():
 
 @app.on_event("shutdown")
 async def shutdown():
+    """Request job cancellation, remove temporary job files, and unload cached TTS models."""
     from src.api.job_queue import cleanup_on_shutdown, get_model_manager_instance
     cleanup_on_shutdown()
     get_model_manager_instance().unload_all()

@@ -11,6 +11,7 @@ _limits = {}
 
 
 def wait_with_cancel(seconds, check_cancel=None):
+    """Sleep in short intervals, invoking the cancellation callback between waits."""
     while seconds > 0:
         if check_cancel:
             check_cancel()
@@ -22,6 +23,7 @@ def wait_with_cancel(seconds, check_cancel=None):
 
 
 def _retry_delay(value, default):
+    """Parse Retry-After seconds or an HTTP date, falling back when the value is invalid."""
     try:
         return max(0.0, float(value))
     except (ValueError, TypeError):
@@ -32,6 +34,12 @@ def _retry_delay(value, default):
 
 
 def post_bodhan(path, key, payload, check_cancel=None, default_rpm=0):
+    """POST a Bodhan payload with per-endpoint credential pacing and up to three attempts.
+
+    Honor provider rate-limit and Retry-After headers, retry connection failures and
+    transient HTTP errors, and check cancellation during waits and after responses.
+    Return the successful response or propagate the final request error.
+    """
     if not key:
         raise RuntimeError("Bodhan API credential is missing")
     # The application processes one podcast at a time; limits are per model/key.

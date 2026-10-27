@@ -1,3 +1,5 @@
+"""Build and run actor-critic workflows for generating and revising podcast dialogue."""
+
 import json
 from pathlib import Path
 from typing import Any, Dict, List, TypedDict
@@ -8,6 +10,7 @@ from .llm_client import LLMClient, extract_json, validate_turns
 
 
 def _load_prompt(name: str) -> str:
+    """Read and strip a named UTF-8 system prompt from the adjacent prompts directory."""
     return (Path(__file__).parent / "prompts" / f"{name}.txt").read_text(
         encoding="utf-8"
     ).strip()
@@ -32,6 +35,7 @@ class GraphState(TypedDict):
 def _build_user_prompt(
     content_markdown: str, questions_context: str, feedback: str, english_only: bool = False,
 ) -> str:
+    """Assemble source content, answerable questions, language guidance, and prior feedback."""
     base = f"CONTENT:\n<<<\n{content_markdown}\n>>>\n\n"
     if questions_context.strip():
         base += f"\nANSWERABLE QUESTIONS:\n<<<\n{questions_context}\n>>>\n\n"
@@ -43,7 +47,9 @@ def _build_user_prompt(
 
 
 def build_graph(client: LLMClient, max_loops: int, english_only: bool = False):
+    """Compile the drafting workflow, stopping after approval or the configured attempt limit."""
     def actor(state: GraphState) -> Dict:
+        """Request a draft, validate host dialogue, and advance the attempt count with feedback."""
         user = _build_user_prompt(
             state["content_markdown"], state["questions_context"], state["feedback"], english_only,
         )
@@ -64,6 +70,7 @@ def build_graph(client: LLMClient, max_loops: int, english_only: bool = False):
         }
 
     def critic(state: GraphState) -> Dict:
+        """Review the draft against content and questions, returning approval and feedback."""
         user = f"CONTENT:\n<<<\n{state['content_markdown']}\n>>>\n\n"
         if state["questions_context"].strip():
             user += f"ANSWERABLE QUESTIONS:\n<<<\n{state['questions_context']}\n>>>\n\n"
@@ -78,6 +85,7 @@ def build_graph(client: LLMClient, max_loops: int, english_only: bool = False):
         }
 
     def router(state: GraphState) -> str:
+        """End drafting on approval or exhausted attempts; otherwise request another draft."""
         if state["is_approved"] or state["loop_count"] >= max_loops:
             return "end"
         return "actor"
@@ -92,6 +100,7 @@ def build_graph(client: LLMClient, max_loops: int, english_only: bool = False):
 
 
 def run_section(graph, content_markdown: str, questions_context: str = "") -> List[Dict[str, str]]:
+    """Invoke a drafting graph with fresh state and return its final dialogue draft."""
     result = graph.invoke(
         {
             "content_markdown": content_markdown,
@@ -115,6 +124,7 @@ class RevisionState(TypedDict):
 
 
 def merge_edits(script: List[Dict[str, str]], edits: List[Dict[str, str]]) -> List[Dict[str, str]]:
+    """Copy the script and replace text for known turn IDs, preserving speakers and order."""
     by_id = {t["turn_id"]: dict(t) for t in script}
     for e in edits:
         if e.get("turn_id") in by_id:
@@ -123,6 +133,7 @@ def merge_edits(script: List[Dict[str, str]], edits: List[Dict[str, str]]) -> Li
 
 
 def _valid_edits(parsed: Any) -> List[Dict[str, str]]:
+    """Keep well-formed host edits, normalizing turn IDs and stripping nonempty text."""
     if not isinstance(parsed, list):
         return []
     out: List[Dict[str, str]] = []
@@ -139,7 +150,9 @@ def _valid_edits(parsed: Any) -> List[Dict[str, str]]:
 
 
 def build_revision_graph(client: LLMClient, max_loops: int, english_only: bool = False):
+    """Compile the feedback editing workflow with critic review and a bounded attempt count."""
     def editor(state: RevisionState) -> Dict:
+        """Propose validated turn edits from user notes and any previous critic feedback."""
         user = (
             f"USER NOTES:\n<<<\n{state['notes']}\n>>>\n\n"
             f"FULL SCRIPT:\n{json.dumps(state['script'], ensure_ascii=False)}"
@@ -156,6 +169,7 @@ def build_revision_graph(client: LLMClient, max_loops: int, english_only: bool =
         return {"edits": edits, "loop_count": state["loop_count"] + 1}
 
     def critic(state: RevisionState) -> Dict:
+        """Compare the original and edited scripts against the notes and return a review."""
         merged = merge_edits(state["script"], state["edits"])
         user = (
             f"ORIGINAL SCRIPT:\n<<<\n{json.dumps(state['script'], ensure_ascii=False)}\n>>>\n\n"
@@ -172,6 +186,7 @@ def build_revision_graph(client: LLMClient, max_loops: int, english_only: bool =
         }
 
     def router(state: RevisionState) -> str:
+        """End revision on approval or exhausted attempts; otherwise request new edits."""
         if state["is_approved"] or state["loop_count"] >= max_loops:
             return "end"
         return "editor"
@@ -186,6 +201,7 @@ def build_revision_graph(client: LLMClient, max_loops: int, english_only: bool =
 
 
 def run_revision(graph, turns: List[Dict[str, str]], notes: str) -> List[Dict[str, str]]:
+    """Invoke a revision graph with the original script and notes, returning its proposed edits."""
     result = graph.invoke(
         {
             "script": turns,

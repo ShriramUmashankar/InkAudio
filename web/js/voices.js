@@ -1,3 +1,4 @@
+/* Voice catalogs, language labels, and voice-design guidance used by generation controls. */
 export const BODHAN_VOICES = [
   { name: "Prastuti", lang: "as", mf: "female" }, { name: "Ankur", lang: "as", mf: "male" },
   { name: "Ishita", lang: "bn", mf: "female" }, { name: "Sourav", lang: "bn", mf: "male" },

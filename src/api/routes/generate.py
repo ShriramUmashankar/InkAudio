@@ -1,3 +1,5 @@
+"""Validate uploads and generation options, expose voice metadata, and start jobs."""
+
 import json
 from pathlib import Path
 from typing import Optional
@@ -17,17 +19,20 @@ _TEMPLATE_DIR = Path(__file__).resolve().parents[3] / "src" / "tts_requirements"
 
 
 def _default_language():
+    """Read the configured podcast language directly from YAML without loading API secrets."""
     config = yaml.safe_load((_TEMPLATE_DIR.parents[1] / "config.yaml").read_text(encoding="utf-8"))
     return config.get("tts", {}).get("podcast_language", "en")
 
 
 @router.get("/api/tts/languages")
 async def get_languages():
+    """Return supported podcast language codes and the configured default language."""
     return {"languages": LANGUAGES, "default": _default_language()}
 
 
 @router.get("/api/tts/template")
 async def get_template(mode: str):
+    """Return the YAML voice template for a supported TTS mode or a not-found error."""
     if mode not in VALID_TTS_MODES:
         raise HTTPException(status_code=404, detail=f"Unknown TTS mode: {mode}")
     path = _TEMPLATE_DIR / f"{mode}.yaml"
@@ -43,6 +48,7 @@ async def generate_job(
     questions_pdf: Optional[UploadFile] = File(None, description="Optional questions PDF"),
     config: Optional[str] = Body(None, description="JSON config overrides"),
 ):
+    """Validate mode and JSON options, reserve the job, save PDF uploads, and schedule processing."""
     if mode not in VALID_TTS_MODES:
         raise HTTPException(status_code=404, detail=f"Unknown TTS mode: {mode}")
     if not content_pdf or not content_pdf.filename:

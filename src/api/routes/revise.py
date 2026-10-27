@@ -1,3 +1,5 @@
+"""Restart a completed job with text feedback while retaining its generated assets."""
+
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 
@@ -9,6 +11,7 @@ router = APIRouter()
 
 @router.post("/api/job/revise")
 async def revise_job(request: RevisionRequest):
+    """Apply feedback to a completed job, reset its lifecycle state, and schedule revision work."""
     job = job_queue.get_current_job()
     if job is None or job.status != "completed":
         raise HTTPException(status_code=400, detail="no completed job to revise")

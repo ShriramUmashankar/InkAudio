@@ -1,4 +1,7 @@
-"""Run with: python -m pytest docker/test_lite.py -q (no cloud/model calls)."""
+"""Test opt-in Lite restrictions while mocking cloud calls and speech models.
+
+Run with: python -m pytest docker/test_lite.py -q.
+"""
 from types import SimpleNamespace
 
 import pytest
@@ -10,6 +13,7 @@ from src.api.main import app
 
 @pytest.fixture
 def client(monkeypatch, tmp_path):
+    """Isolate job files/state and start each API test with Lite disabled."""
     monkeypatch.delenv("PODCAST_LITE", raising=False)
     monkeypatch.setattr(job_queue, "TEMP_ROOT", tmp_path / "job")
     monkeypatch.setattr(job_queue, "_current_job", None)
@@ -22,6 +26,7 @@ def client(monkeypatch, tmp_path):
     ("1", True, ["bodhan"]),
 ])
 def test_capabilities_are_opt_in(client, monkeypatch, flag, lite, modes):
+    """Advertise reduced capabilities only when PODCAST_LITE is exactly '1'."""
     if flag is not None:
         monkeypatch.setenv("PODCAST_LITE", flag)
     response = client.get("/api/capabilities")
@@ -34,6 +39,7 @@ def test_capabilities_are_opt_in(client, monkeypatch, flag, lite, modes):
     "/api/job/custom_voice/", "/api/transcribe/",
 ])
 def test_lite_rejects_before_parsing_upload_or_starting_job(client, monkeypatch, path):
+    """Reject unsupported Lite requests before parsing uploads or loading models."""
     monkeypatch.setenv("PODCAST_LITE", "1")
     monkeypatch.setattr(job_queue, "create_job", lambda *a: pytest.fail("job was created"))
     monkeypatch.setattr("src.api.routes.transcribe._load_model", lambda: pytest.fail("STT loaded"))
@@ -47,6 +53,7 @@ def test_lite_rejects_before_parsing_upload_or_starting_job(client, monkeypatch,
 @pytest.mark.parametrize("mode", ["bodhan", "custom_voice", "voice_design"])
 @pytest.mark.parametrize("lite", [False, True])
 def test_only_lite_limits_generation(client, monkeypatch, tmp_path, mode, lite):
+    """Accept each normal mode while restricting Lite generation to Bodhan."""
     if lite:
         monkeypatch.setenv("PODCAST_LITE", "1")
     job = SimpleNamespace(content_pdf_path=str(tmp_path / "upload.pdf"), questions_pdf_path="unused")
@@ -63,6 +70,7 @@ def test_only_lite_limits_generation(client, monkeypatch, tmp_path, mode, lite):
 
 
 def test_health_and_examples_need_no_credentials(client, monkeypatch):
+    """Serve process health and saved example ranges without loading credentials."""
     monkeypatch.setenv("PODCAST_LITE", "1")
     monkeypatch.setattr("src.config.load_settings", lambda *a: pytest.fail("settings loaded"))
     assert client.get("/api/health").json() == {"status": "ok"}
@@ -74,6 +82,7 @@ def test_health_and_examples_need_no_credentials(client, monkeypatch):
 
 
 def test_normal_transcription_still_works(client, monkeypatch):
+    """Return the mocked transcript when transcription is enabled in normal mode."""
     from src.api.routes import transcribe
     monkeypatch.setattr(transcribe, "_model", SimpleNamespace(
         transcribe=lambda path: ([SimpleNamespace(text="Typed or spoken feedback")], None)))
@@ -84,6 +93,7 @@ def test_normal_transcription_still_works(client, monkeypatch):
 
 
 def test_lite_typed_revision_remains_available(client, monkeypatch, tmp_path):
+    """Start a text-feedback revision of an existing completed Bodhan job in Lite."""
     monkeypatch.setenv("PODCAST_LITE", "1")
     job = job_queue.JobRecord("bodhan", str(tmp_path), "unused.pdf", {}, status="completed")
     monkeypatch.setattr(job_queue, "_current_job", job)

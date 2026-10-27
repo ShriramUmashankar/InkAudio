@@ -1,6 +1,8 @@
+/* Play saved episodes with synchronized captions, host portraits, and an audio spectrum. */
 import { renderNav } from './nav.js';
 
 renderNav('examples.html');
+// Look up a player element by its stable page ID.
 const $ = (id) => document.getElementById(id);
 const audio = $('example-audio');
 const play = $('play-example');
@@ -72,16 +74,20 @@ function portrait(female, color) {
     <path d="M167 172h10m-10 6h10m-10 6h10" stroke="${color}" stroke-opacity=".5" stroke-width="2"/>
   </svg>`;
 }
+// Install distinct SVG portraits for the two host positions.
 hosts.forEach((host, i) => { host.querySelector('.portrait').innerHTML = portrait(i === 1, i ? '#5dd9df' : '#a68aff'); });
 
+/** Format playback seconds as a nonnegative minute-and-second label. */
 function fmt(seconds) {
   const s = Math.max(0, Math.floor(seconds || 0));
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
+/** Display a recoverable episode or playback error. */
 function showError(message) {
   $('example-error').textContent = message;
   $('example-error').hidden = false;
 }
+/** Draw mirrored frequency bars, using an idle baseline when audio is inactive. */
 function drawSpectrum(active = false) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   if (active && analyser) analyser.getByteFrequencyData(bins);
@@ -98,15 +104,18 @@ function drawSpectrum(active = false) {
   }
   ctx.globalAlpha = 1;
 }
+/** Update localized dialogue and optionally crossfade from the previous caption. */
 function setCaption(turn, animate) {
   if (animate && !reducedMotion.matches) {
     document.querySelector('.caption-ghost')?.remove();
     const ghost = $('caption').cloneNode(true);
     ghost.removeAttribute('id');
+    // Remove copied IDs so the outgoing caption does not duplicate live DOM targets.
     ghost.querySelectorAll('[id]').forEach((el) => el.removeAttribute('id'));
     ghost.className = 'caption-ghost';
     ghost.setAttribute('aria-hidden', 'true');
     $('caption-area').appendChild(ghost);
+    // Discard the outgoing caption after its fade completes.
     ghost.addEventListener('animationend', () => ghost.remove(), { once: true });
     $('caption').classList.remove('caption-enter');
     void $('caption').offsetWidth;
@@ -120,6 +129,7 @@ function setCaption(turn, animate) {
   $('caption-text').lang = episode.language;
   $('caption-area').dataset.speaker = turn.speaker;
 }
+/** Align captions, speaking indicators, and seek labels with the audio clock. */
 function sync(animate = true) {
   const ms = audio.currentTime * 1000;
   const speaking = turns.find((turn) => ms >= turn.start_ms && ms < turn.end_ms);
@@ -133,11 +143,13 @@ function sync(animate = true) {
   seek.setAttribute('aria-valuetext', `${fmt(audio.currentTime)} of ${fmt(audio.duration)}`);
   $('current-time').textContent = fmt(audio.currentTime);
 }
+/** Refresh playback visuals on each animation frame while audio is playing. */
 function tick() {
   sync();
   drawSpectrum(!reducedMotion.matches);
   frame = requestAnimationFrame(tick);
 }
+/** Reflect media state in transport controls and start or stop visual updates. */
 function syncPlayback() {
   cancelAnimationFrame(frame);
   const playing = !audio.paused && !audio.ended;
@@ -149,6 +161,7 @@ function syncPlayback() {
   sync(false);
   if (playing) tick(); else drawSpectrum();
 }
+/** Initialize audio analysis and ignore playback outcomes from superseded episodes. */
 async function startPlayback() {
   if (!ready) return;
   const version = loadVersion;
@@ -176,7 +189,9 @@ async function startPlayback() {
     syncPlayback();
   }
 }
+// Toggle playback from the main transport button.
 play.addEventListener('click', () => audio.paused ? startPlayback() : audio.pause());
+// Load the selected library episode before scrolling to and starting its player.
 document.querySelectorAll('[data-example]').forEach((card) => {
   card.addEventListener('click', async () => {
     const key = card.dataset.example;
@@ -187,17 +202,24 @@ document.querySelectorAll('[data-example]').forEach((card) => {
     startPlayback();
   });
 });
+// Seek immediately and synchronize captions without transition animations.
 seek.addEventListener('input', () => { audio.currentTime = Number(seek.value); sync(false); });
+// Settle captions after seeking without replaying a fade.
 audio.addEventListener('seeked', () => sync(false));
+// Keep captions current during normal playback and scrubbing.
 audio.addEventListener('timeupdate', () => sync(!audio.seeking));
+// Refresh transport state for each media lifecycle transition.
 ['play', 'pause', 'ended'].forEach((event) => audio.addEventListener(event, syncPlayback));
+// Expose media buffering while the browser waits for audio data.
 audio.addEventListener('waiting', () => { $('studio-status').textContent = 'Buffering'; });
 audio.addEventListener('playing', syncPlayback);
+// Stop playback and explain that the recording could not be loaded.
 audio.addEventListener('error', () => {
   audio.pause();
   showError('The recording could not be loaded. Reload the page to try again.');
   $('studio-status').textContent = 'Audio unavailable';
 });
+/** Set seek bounds and duration once valid audio metadata is available. */
 function metadata() {
   if (!Number.isFinite(audio.duration)) return;
   seek.max = audio.duration;
@@ -206,6 +228,7 @@ function metadata() {
 audio.addEventListener('loadedmetadata', metadata);
 metadata();
 drawSpectrum();
+/** Reset episode state, validate paired assets, and discard stale asynchronous loads. */
 async function loadEpisode(key) {
   const version = ++loadVersion;
   ready = false;
@@ -230,10 +253,12 @@ async function loadEpisode(key) {
   $('episode-title').textContent = episode.title;
   $('episode-tag').textContent = episode.tag;
   $('episode-description').textContent = episode.description;
+  // Replace host names with those of the newly selected episode.
   hosts.forEach((host, i) => { host.querySelector('.host-label strong').textContent = episode.hosts[i]; });
   studio.setAttribute('aria-label', `${episode.title} podcast player`);
   play.setAttribute('aria-label', `Play ${episode.title}`);
   seek.setAttribute('aria-label', `Seek through ${episode.title}`);
+  // Mark the active episode consistently for visual and assistive controls.
   document.querySelectorAll('[data-example]').forEach((card) => {
     const selected = card.dataset.example === key;
     card.classList.toggle('selected', selected);
@@ -246,11 +271,13 @@ async function loadEpisode(key) {
   audio.load();
   const base = `/podcast_examples/${episode.folder}/`;
   try {
+    // Fetch script and timing metadata together before enabling playback.
     const responses = await Promise.all(['script.json', 'timeline.json'].map((file) => fetch(base + file)));
     if (responses.some((response) => !response.ok)) throw new Error('Missing episode assets');
     const [script, timeline] = await Promise.all(responses.map((response) => response.json()));
     if (version !== loadVersion) return false;
     if (!Array.isArray(script) || !Array.isArray(timeline) || !timeline.length) throw new Error('Invalid episode assets');
+    // Match timings to valid dialogue turns and sort captions by start time.
     turns = timeline.map((time) => {
       const dialogue = script.find((turn) => Number(turn.turn_id) === Number(time.turn_id));
       if (!dialogue || dialogue.speaker !== time.speaker || !dialogue.text?.trim() || !['Host 1', 'Host 2'].includes(time.speaker) || !(time.end_ms > time.start_ms)) throw new Error('Invalid episode turn');

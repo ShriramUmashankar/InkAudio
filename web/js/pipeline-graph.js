@@ -1,3 +1,4 @@
+/* Build and animate the explanatory SVG walkthrough of generation and revision. */
 const N = {
   wait:      { x: 130,  y: 370, t: "WAIT / START", s: "waits for a content PDF", start: true, l: "API server idle — the start and finish of every run." },
   ingest:    { x: 370,  y: 370, t: "INGEST",      s: "PDF → Markdown", l: "The PDF is converted to clean Markdown (docling)." },
@@ -50,9 +51,11 @@ const ZONES = { start: "START", questions: "QUESTIONS", loop: "WRITER LOOP", wri
 
 const svg = document.getElementById("graph");
 const NS = "http://www.w3.org/2000/svg";
+// Look up SVG nodes and walkthrough controls by ID.
 const $ = (id) => document.getElementById(id);
 const DEF_CAPTION = "One full generation + revision, on loop.";
 
+/** Create an SVG element, assign attributes, and optionally attach it to a parent. */
 function el(name, attrs, parent) {
   const n = document.createElementNS(NS, name);
   for (const [k, v] of Object.entries(attrs || {})) n.setAttribute(k, v);
@@ -60,6 +63,7 @@ function el(name, attrs, parent) {
   return n;
 }
 
+/** Construct diagram paths, nodes, explanatory cards, and animation controls. */
 function buildGraph() {
   const defs = el("defs", {}, svg);
   const gact = el("linearGradient", { id: "gact", x1: "0", y1: "0", x2: "1", y2: "0" }, defs);
@@ -101,9 +105,12 @@ function buildGraph() {
   start();
 }
 
+/** Define the timed generation and revision narrative, including rejection loops. */
 function mkBeats() {
   const b = [];
+  // Append an ordinary transition with optional approval or rejection badge.
   const P = (from, to, edge, text, zone, dur = 1300, badge = null) => b.push({ from, to, edge, text, zone, dur, type: "pass", badge });
+  // Append a fixed-duration rejection transition.
   const R = (from, to, edge, text, zone, badge) => b.push({ from, to, edge, text, zone, dur: 1000, type: "reject", badge });
 
   P("wait", "ingest", "wait_ingest", "PDF applied — pipeline starts", "start", 1300);
@@ -145,6 +152,7 @@ let lastT = null;
 const playBtn = $("play"), prevBtn = $("prev"), nextBtn = $("next"), restartBtn = $("restart");
 const speedSel = $("speed"), scrub = $("scrub"), caption = $("caption");
 
+/** Rebuild beat offsets and reset the walkthrough to its initial playing state. */
 function restart() {
   beats = mkBeats();
   starts = [];
@@ -159,6 +167,7 @@ function restart() {
   caption.innerHTML = `<span class="zone">READY</span> ${DEF_CAPTION}`;
 }
 
+/** Resolve elapsed milliseconds to a beat index and normalized progress. */
 function resolve(e) {
   if (e < starts[0]) return { idx: -1, prog: 0 };
   for (let i = 0; i < beats.length; i++) {
@@ -167,8 +176,10 @@ function resolve(e) {
   return { idx: beats.length - 1, prog: 1 };
 }
 
+// Smooth packet movement at both ends of a transition.
 const ease = (p) => p * p * (3 - 2 * p);
 
+/** Render node states, moving packet, verdict badge, caption, and transport state. */
 function draw() {
   const { idx, prog } = resolve(elapsed);
   const done = new Set();
@@ -188,6 +199,7 @@ function draw() {
     g.classList.toggle("rejected", id === rejecting);
   }
 
+  // Clear the previous edge highlight before marking the current transition.
   svg.querySelectorAll(".edge").forEach((p) => p.classList.remove("travel"));
   const dot = $("packet");
   if (idx >= 0 && prog < 1) {
@@ -229,6 +241,7 @@ function draw() {
   playBtn.textContent = playing ? "Pause" : "Play";
 }
 
+/** Advance the walkthrough clock at the chosen speed and replay after completion. */
 function frame(now) {
   if (lastT == null) lastT = now;
   const dt = (now - lastT) / 1000;
@@ -246,27 +259,35 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 
+/** Bind playback, beat navigation, speed, and scrub controls, then start animation. */
 function start() {
   restart();
   playBtn.addEventListener("click", () => { playing = !playing; });
+  // Jump to the start of the preceding beat.
   prevBtn.addEventListener("click", () => {
     const { idx } = resolve(elapsed);
     elapsed = Math.max(0, starts[Math.max(0, idx - 1)]);
   });
+  // Advance one beat, or restart when the walkthrough has finished.
   nextBtn.addEventListener("click", () => {
     if (finished) { restart(); return; }
     const { idx } = resolve(elapsed);
     elapsed = idx < beats.length - 1 ? starts[idx + 1] : totalMs;
   });
+  // Reset the demonstration on explicit replay.
   restartBtn.addEventListener("click", () => restart());
+  // Apply the selected multiplier to subsequent animation ticks.
   speedSel.addEventListener("change", () => { speed = parseFloat(speedSel.value); });
+  // Seek the demonstration clock within its total duration.
   scrub.addEventListener("input", () => { elapsed = Math.min(totalMs, parseFloat(scrub.value)); });
   requestAnimationFrame(frame);
 
   if (new URLSearchParams(location.search).has("selftest")) selftest();
 }
 
+/** Validate diagram references, beat metadata, and the expected verdict sequence. */
 function selftest() {
+  // Raise a diagnostic error identifying a broken walkthrough invariant.
   const fail = (msg) => { throw new Error("selftest: " + msg); };
   for (const [id2, n] of Object.entries(N)) {
     if (typeof n.x !== "number" || typeof n.y !== "number") fail("bad node " + id2);
@@ -282,6 +303,7 @@ function selftest() {
     if (b.badge && (!b.badge.x || !b.badge.y || b.badge.kind !== "ok" && b.badge.kind !== "reject" || !b.badge.txt)) fail("bad badge: " + b.text);
     acc += b.dur;
   }
+  // Collect distinct verdicts in narrative order for sequence validation.
   const uniq = [...new Set(bb.filter((b) => b.badge).map((b) => b.badge.txt))];
   const want = ["rejected 1/3", "rejected 2/3", "approved 3/3", "rejected 1/2", "approved 2/2"];
   if (JSON.stringify(uniq) !== JSON.stringify(want)) fail("badge sequence wrong: " + JSON.stringify(uniq));

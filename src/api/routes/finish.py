@@ -1,3 +1,5 @@
+"""Expose cooperative cancellation and cleanup of the current podcast job."""
+
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 
@@ -8,6 +10,7 @@ router = APIRouter()
 
 @router.post("/api/job/finish")
 async def finish_job():
+    """Request cancellation of running work, or release a terminal job and its assets."""
     job = job_queue.get_current_job()
     if job is None:
         return JSONResponse(content={"status": "cleaned_up"})
@@ -20,6 +23,7 @@ async def finish_job():
 
 @router.post("/api/job/terminate")
 async def terminate_job():
+    """Flag a running job for cooperative cancellation while keeping its reservation."""
     job = job_queue.get_current_job()
     if job is None or job.status != "running":
         raise HTTPException(status_code=400, detail="no running job")

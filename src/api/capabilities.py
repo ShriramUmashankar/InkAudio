@@ -8,14 +8,18 @@ router = APIRouter()
 
 
 def is_lite():
+    """Return whether the environment enables the restricted Docker Lite feature set."""
     return os.environ.get("PODCAST_LITE") == "1"
 
 
 class LiteModeMiddleware:
+    """Block local TTS and transcription POST requests when Lite mode is enabled."""
     def __init__(self, app):
+        """Store the downstream ASGI application for allowed requests."""
         self.app = app
 
     async def __call__(self, scope, receive, send):
+        """Reject restricted Lite requests before body parsing, or forward the ASGI call."""
         # Reject before FastAPI parses multipart bodies or creates a job.
         if (scope["type"] == "http" and is_lite()
                 and scope["method"] == "POST"
@@ -33,6 +37,7 @@ class LiteModeMiddleware:
 
 @router.get("/api/capabilities")
 async def capabilities():
+    """Report available TTS modes and transcription support for the current environment."""
     lite = is_lite()
     return {"lite": lite, "tts_modes": ["bodhan"] if lite else [
         "bodhan", "custom_voice", "voice_design",

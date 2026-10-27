@@ -1,3 +1,5 @@
+"""Transcribe uploaded audio with an on-demand faster-whisper model."""
+
 import os
 import tempfile
 from pathlib import Path
@@ -12,6 +14,7 @@ _settings = None
 
 
 def _load_model():
+    """Cache STT settings and construct the faster-whisper model for the next transcription."""
     global _model, _settings
     if _settings is None:
         _settings = load_settings()
@@ -23,6 +26,7 @@ def _load_model():
 
 
 def _unload_model():
+    """Release the transcription model and clear available CUDA cache after a request."""
     global _model
     if _model is not None:
         del _model
@@ -42,6 +46,7 @@ router = APIRouter()
                 "Uses faster-whisper with model loaded on demand to avoid permanent GPU VRAM usage.",
 )
 async def transcribe(file: UploadFile = File(..., description="Audio file to transcribe")):
+    """Save uploaded audio temporarily, join recognized segments, and unload the STT model."""
     if _model is None:
         _load_model()
 

@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Upload or record audio, request a transcript, and copy the resulting text. -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -44,6 +45,7 @@
   <div class="transcript" id="out-text"></div>
 </section>
 <script type="module">
+/* Coordinate file uploads, microphone capture, transcription, and clipboard feedback. */
 import { renderNav } from "./js/nav.js";
 import { transcribe } from "./js/api.js";
 import { wireDrop, startRecording } from "./js/ui.js";
@@ -60,6 +62,7 @@ const copyBtn = document.getElementById("copy");
 const micBtn = document.getElementById("mic-btn");
 const micStatus = document.getElementById("mic-status");
 
+/** Reveal transcript text, enable copying, and bring the output into view. */
 function showTranscript(text) {
   statusEl.textContent = "";
   micStatus.textContent = "";
@@ -69,6 +72,7 @@ function showTranscript(text) {
   out.scrollIntoView({ block: "nearest", behavior: "smooth" });
 }
 
+/** Request transcription and restore the submit button according to server capabilities. */
 async function runTranscribe(file) {
   goBtn.disabled = true;
   errorEl.hidden = true;
@@ -83,6 +87,7 @@ async function runTranscribe(file) {
   }
 }
 
+// Require an uploaded file before starting transcription.
 goBtn.addEventListener("click", () => {
   const f = fileEl.files[0];
   if (!f) { errorEl.textContent = "Choose an audio file first."; errorEl.hidden = false; return; }
@@ -90,6 +95,7 @@ goBtn.addEventListener("click", () => {
 });
 
 let rec = null;
+// Toggle microphone recording and transcribe the completed recording.
 micBtn.addEventListener("click", async () => {
   if (rec) {
     rec.stop();
@@ -109,10 +115,12 @@ micBtn.addEventListener("click", async () => {
 
 const COPY_ICON = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>';
 const CHECK_ICON = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>';
+// Copy the transcript and briefly acknowledge success with a check icon.
 copyBtn.addEventListener("click", async () => {
   await navigator.clipboard.writeText(outText.textContent);
   copyBtn.classList.add("copied");
   copyBtn.innerHTML = CHECK_ICON;
+  // Restore the copy affordance after the success indicator has been visible.
   setTimeout(() => {
     copyBtn.classList.remove("copied");
     copyBtn.innerHTML = COPY_ICON;

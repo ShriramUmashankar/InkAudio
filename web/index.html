@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Configure voices and language, upload source PDFs, and start podcast generation. -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -65,6 +66,7 @@
   <button class="primary cta" id="submit"><span>Generate podcast</span></button>
 </main>
 <script type="module">
+/* Load voice and language defaults, rebuild host controls, and submit generation requests. */
 import { renderNav } from "./js/nav.js";
 import { startJob, getTemplate, getLanguages } from "./js/api.js";
 import { wireDrop, customSelect } from "./js/ui.js";
@@ -82,6 +84,7 @@ let bodhanVoices = null;
 let renderedMode = null;
 let renderVersion = 0;
 
+/** Populate language choices from the server and surface discovery failures. */
 async function loadLanguages() {
   try {
     const result = await getLanguages();
@@ -100,6 +103,7 @@ async function loadLanguages() {
   }
 }
 
+/** Build the voice-description guidance shown for Qwen Voice Design. */
 function voiceDesignGuide() {
   const el = document.createElement("section");
   el.className = "card note dims";
@@ -110,9 +114,11 @@ function voiceDesignGuide() {
   return el;
 }
 
+/** Create mode-specific voice controls initialized from one host’s template. */
 function hostSection(host, cfg, mode, idx) {
   const el = document.createElement("section");
   el.className = "host";
+  // Wrap a host control in the shared field layout.
   const g = (inner, cls = "") => `<div class="field ${cls}">${inner}</div>`;
   if (mode === "bodhan") {
     el.innerHTML =
@@ -145,11 +151,13 @@ function hostSection(host, cfg, mode, idx) {
   return el;
 }
 
+/** Read the selected TTS engine, falling back to Bodhan. */
 function currentMode() {
   const r = document.querySelector('input[name="mode"]:checked');
   return r ? r.value : "bodhan";
 }
 
+/** Refresh host controls while preserving Bodhan choices and rejecting stale template loads. */
 async function rebuildHosts(resetVoices = false) {
   if (renderedMode === "bodhan") {
     bodhanVoices = Object.fromEntries(["host1", "host2"].map(h => [h, document.getElementById(`${h}-voice`).value]));
@@ -181,9 +189,12 @@ async function rebuildHosts(resetVoices = false) {
   renderedMode = mode;
 }
 
+// Rebuild host controls when the selected TTS engine changes.
 document.querySelectorAll('input[name="mode"]').forEach((r) => r.addEventListener("change", () => rebuildHosts()));
+// Choose fresh language-appropriate Bodhan voices after a language change.
 languageSelect.addEventListener("change", () => rebuildHosts(true));
 
+/** Read shared and engine-specific form values into the job override payload. */
 function collectConfig(mode) {
   const cfg = { max_loops: parseInt(document.getElementById("max_loops").value || "3", 10) };
   if (mode === "bodhan") cfg.podcast_language = languageSelect.value;
@@ -203,6 +214,7 @@ function collectConfig(mode) {
   return cfg;
 }
 
+// Validate required input, submit the job, and route accepted requests to Progress.
 submitBtn.addEventListener("click", async () => {
   const content = document.getElementById("content").files[0];
   if (!content) { errorEl.textContent = "Content PDF is required."; errorEl.hidden = false; return; }
