@@ -12,3 +12,11 @@
 !config.yaml
 **/__pycache__/
 **/*.pyc
+
+# Local verification files are not needed by the evaluator image.
+**/conftest.py
+**/test_*.py
+**/*_test.py
+**/*.test.*
+**/*.spec.*
+docker/smoke.py

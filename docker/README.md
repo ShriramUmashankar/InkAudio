@@ -95,28 +95,19 @@ model volumes to delete; required PDF assets live in the image.
 
 ## Verification
 
-With the image built, verify CPU PDF conversion and OCR without any network:
+With Compose running, inspect its status and logs:
 
 ```bash
-docker run --rm --network none podcast-generation-lite:local python /opt/lite/smoke.py --pdf
+docker compose ps
+docker compose logs --tail=100 lite
 ```
 
-With Compose running, check health, capabilities, rejection of unsupported
-requests, and range playback for all four example MP3s:
-
-```bash
-docker compose exec lite python /opt/lite/smoke.py --url http://127.0.0.1:8000
-```
-
-The source regression tests make no live provider calls:
-
-```bash
-PYTHONPATH=. ~/.local/bin/pytest docker/test_lite.py -q
-node web/js/regressions.test.cjs
-```
-
-The existing `tests/` suite cleans `.api_tmp/`; run it in a separate checkout if
-another app instance is using your working directory.
+Open `/api/health` on the configured localhost port for process status and
+`/api/capabilities` for the enabled features. The Examples page plays all four
+saved episodes without API keys. Upload a small PDF to check live generation
+with your credentials. Test and smoke-check scripts are kept locally and are
+not included in the repository or image; the validation record below describes
+checks performed during development.
 
 Verification on 2026-10-27 (India time), Linux `amd64`:
 

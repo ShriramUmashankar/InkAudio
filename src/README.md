@@ -28,7 +28,7 @@ Optional question PDFs are classified against the source before script generatio
 | `web/` | Static HTML/CSS/JavaScript served by FastAPI |
 | `podcast_examples/` | Saved example MP3s, scripts, and timelines; preserved independently of job cleanup |
 | `.api_tmp/` | Temporary website job scripts, audio, uploads, and LLM logs |
-| `docker/` | Lite dependency lock, PDF model prefetch, smoke checks, and Docker documentation |
+| `docker/` | Lite dependency lock, PDF model prefetch, and Docker documentation |
 | `docs/` | Design and implementation notes |
 
 Turn speakers are always `Host 1` or `Host 2`; global zero-padded IDs (`0001`,
@@ -251,18 +251,12 @@ synchronized captions, transitions, and seeking. Preserve the existing assets:
 Each folder contains `final_podcast.mp3`, `script.json`, and `timeline.json`.
 Read the script/timeline metadata when adding an episode.
 
-## Tests
+## Development verification
 
-```bash
-~/.local/bin/pytest tests/ docker/test_lite.py -q
-node web/js/regressions.test.cjs
-```
+Regression suites and smoke-check scripts are kept locally and excluded from
+Git. Mocked checks do not prove provider availability, real GPU memory usage,
+or speech quality. After UI changes, verify example playback and animations in
+a real browser and stop any preview server you started.
 
-Use the user-local pytest binary in this workspace; system pytest has a version
-conflict. The Python tests mock cloud/model calls and use small WAVs, so they
-do not prove provider availability, real GPU memory usage, or speech quality.
-The fixtures clean `.api_tmp/`: run tests in a temporary copy if another app
-instance uses the checkout. After UI changes, verify example playback and
-animations in a real browser and stop any preview server you started.
-
-See [Docker verification](../docker/README.md#verification) for container checks.
+See [Docker verification](../docker/README.md#verification) for evaluator checks
+and the recorded development results.

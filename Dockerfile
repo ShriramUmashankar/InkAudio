@@ -20,7 +20,7 @@ RUN UV_CONCURRENT_DOWNLOADS=4 uv pip install --system --no-cache --only-binary=:
         --index-strategy unsafe-best-match -r /opt/lite/requirements.txt \
     && uv pip check
 
-COPY docker/prefetch_models.py docker/smoke.py /opt/lite/
+COPY docker/prefetch_models.py /opt/lite/
 RUN python /opt/lite/prefetch_models.py
 
 COPY src/ ./src/
