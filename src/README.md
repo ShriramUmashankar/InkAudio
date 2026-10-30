@@ -113,7 +113,7 @@ Loads `script.json`, sends your notes + the full script to the revision graph, m
 | `ingest.py` | `convert_pdf()` and `convert_questions_pdf()` use docling to convert PDFs to Markdown. Idempotent (skips if `.md` exists unless `--force-ingest`). |
 | `graph.py` | LangGraph `StateGraph`: Actor → Critic → Router for script generation. Also `build_revision_graph()` for the Editor → Critic → Router revision loop. |
 | `script_gen.py` | `generate_script()` runs the graph, re-numbers turns globally (`0001`…), writes `script.json`, then synthesizes + stitches. `revise_script()` handles the revision flow. |
-| `tts.py` | Loads Qwen3-TTS (4-bit, BF16 CUDA / FP32 CPU) or calls Bodhan API. Supports `custom_voice`, `voice_design`, and `bodhan`. Qwen CUDA OOM retries the full turn once with its attention cache in RAM, restoring sampling state and cache settings afterward; long turns can still fail. CLI Qwen skips failures; the website reports strict errors. Bodhan chunks long turns into one WAV. |
+| `tts.py` | Loads Qwen3-TTS (4-bit, BF16 CUDA / FP32 CPU) or calls Bodhan API. Supports `custom_voice`, `voice_design`, and `bodhan`. Generates per turn audio files in .WAV format. |
 | `translation.py` / `bodhan.py` | Indic Bodhan dialogue translation, language validation, provider requests, retries, rate limiting, and cancellation. Revisions translate only changed turns. |
 | `stitch.py` | `stitch()` sorts WAVs by numeric `turn_id`, concatenates with `silence_ms` gaps via pydub, exports `final_podcast.mp3`. Writes `timeline.json`. |
 | `evaluator.py` | Classifies questions from the questions PDF as answerable vs unanswerable against the content. |
