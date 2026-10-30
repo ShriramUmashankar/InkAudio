@@ -29,7 +29,6 @@ Optional question PDFs are classified against the source before script generatio
 | `podcast_examples/` | Saved example MP3s, scripts, and timelines; preserved independently of job cleanup |
 | `.api_tmp/` | Temporary website job scripts, audio, uploads, and LLM logs |
 | `docker/` | Lite dependency lock, PDF model prefetch, and Docker documentation |
-| `docs/` | Design and implementation notes |
 
 Turn speakers are always `Host 1` or `Host 2`; global zero-padded IDs (`0001`,
 `0002`, …) preserve dialogue order. Stitching writes matching playback timelines.
