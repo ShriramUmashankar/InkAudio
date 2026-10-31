@@ -1,0 +1,132 @@
+[
+  {
+    "turn_id": "0001",
+    "speaker": "Host 1",
+    "text": "Imagine being lost at sea in the middle of a heavy storm, the sky completely overcast, with not a single star in sight to tell you which way is home."
+  },
+  {
+    "turn_id": "0002",
+    "speaker": "Host 2",
+    "text": "Aiyoo. Without GPS or stars, ancient sailors must have panicked. How did they ever figure out where to go?"
+  },
+  {
+    "turn_id": "0003",
+    "speaker": "Host 1",
+    "text": "They used a marvelous little invention called a magnetic compass! Hi everyone, I am Arun."
+  },
+  {
+    "turn_id": "0004",
+    "speaker": "Host 2",
+    "text": "And my name is Anitha. Today, we are exploring the invisible, pulling forces of magnets, how they help us find our way, and why they act so strangely around each other. Okay Arun, you mentioned ancient sailors, but how do magnets actually work?"
+  },
+  {
+    "turn_id": "0005",
+    "speaker": "Host 1",
+    "text": "Well, it all starts with materials. If you gather a bunch of random objects—like a wooden pencil, a rubber eraser, and some iron nails—and bring a magnet near them, you will notice something interesting. Some things stick, and some do not."
+  },
+  {
+    "turn_id": "0006",
+    "speaker": "Host 2",
+    "text": "Right, the things that stick are magnetic, and the ones that don't are non-magnetic. But wait, what are the actual metals that magnets attract?"
+  },
+  {
+    "turn_id": "0007",
+    "speaker": "Host 1",
+    "text": "The chapter highlights iron as a primary magnetic material, along with nickel and cobalt. Certain combinations of these metals are also attracted to magnets."
+  },
+  {
+    "turn_id": "0008",
+    "speaker": "Host 2",
+    "text": "Got it. Iron, nickel, and cobalt. Now, when I hold a bar magnet, do the iron filings stick everywhere equally, or do they have favorite spots?"
+  },
+  {
+    "turn_id": "0009",
+    "speaker": "Host 1",
+    "text": "They definitely have favorites! If you sprinkle iron filings on a paper and place a bar magnet over them, you will see that the maximum number of filings stick right near the ends of the magnet."
+  },
+  {
+    "turn_id": "0010",
+    "speaker": "Host 2",
+    "text": "And those ends have special names, right?"
+  },
+  {
+    "turn_id": "0011",
+    "speaker": "Host 1",
+    "text": "Exactly. Those are the two poles of the magnet—the North pole and the South pole. And fun fact: you can never isolate just one pole. If you break a magnet into tiny pieces, every single piece will still have both a North and a South pole."
+  },
+  {
+    "turn_id": "0012",
+    "speaker": "Host 2",
+    "text": "Nature really loves symmetry, doesn't it? But wait, earlier you mentioned how sailors found directions. How does a magnet help with that?"
+  },
+  {
+    "turn_id": "0013",
+    "speaker": "Host 1",
+    "text": "If you freely suspend a bar magnet using a thread, something magical happens. It will always come to rest pointing along a north-south direction. That is because the Earth itself acts like a giant, invisible magnet!"
+  },
+  {
+    "turn_id": "0014",
+    "speaker": "Host 2",
+    "text": "So that is why a compass works! It is just a tiny, freely rotating magnet inside a small box, usually with a needle whose North-seeking end is painted red."
+  },
+  {
+    "turn_id": "0015",
+    "speaker": "Host 1",
+    "text": "Spot on. In fact, long before modern compasses, ancient Indian sailors used a magnetized fish-shaped iron piece kept in a vessel of oil, called a matsya-yantra, for navigation."
+  },
+  {
+    "turn_id": "0016",
+    "speaker": "Host 2",
+    "text": "That is such a cool historical detail. But tell me about what happens when you bring two magnets together. Do they always want to cuddle?"
+  },
+  {
+    "turn_id": "0017",
+    "speaker": "Host 1",
+    "text": "Not quite! Like poles—meaning two North poles or two South poles—repel each other and push apart. But unlike poles—a North and a South—attract each other enthusiastically."
+  },
+  {
+    "turn_id": "0018",
+    "speaker": "Host 2",
+    "text": "Ah, opposites attract! And wait, how does that help us tell the difference between a real magnet and just an ordinary piece of iron?"
+  },
+  {
+    "turn_id": "0019",
+    "speaker": "Host 1",
+    "text": "That is the ultimate test, Anitha. An ordinary iron bar will be attracted to both poles of a magnet. But true repulsion—where a pole pushes another object away—only happens when you have two actual magnets. Repulsion is the sure-fire way to identify a magnet."
+  },
+  {
+    "turn_id": "0020",
+    "speaker": "Host 2",
+    "text": "Physics giving us trust issues! You can only trust repulsion. But what if you put something in the way? Like, can a magnet's power pass through a piece of wood or glass?"
+  },
+  {
+    "turn_id": "0021",
+    "speaker": "Host 1",
+    "text": "It totally can. If you place a non-magnetic material—like wood, cardboard, a thin plastic sheet, or glass—between a magnet and a compass needle, the magnetic effect still works right through it without any major drop in deflection."
+  },
+  {
+    "turn_id": "0022",
+    "speaker": "Host 2",
+    "text": "So basically, magnetic forces are totally fine working behind the scenes through solid non-magnetic barriers."
+  },
+  {
+    "turn_id": "0023",
+    "speaker": "Host 1",
+    "text": "You nailed it. And once you know these basics, you can build your own compass with a sewing needle, a cork, and a bowl of water, or even set up fun games like magnetic mazes and matchbox-magnet cars."
+  },
+  {
+    "turn_id": "0024",
+    "speaker": "Host 2",
+    "text": "So to wrap it all up: magnets love iron, nickel, and cobalt, they always come in pairs of North and South poles, they point north-south because of our giant planet, and opposite poles attract while like poles repel—even right through wood and glass!"
+  },
+  {
+    "turn_id": "0025",
+    "speaker": "Host 1",
+    "text": "Couldn't have said it better myself. Next time you look at a compass or a fridge magnet, you will know the invisible forces at play. I am Arun."
+  },
+  {
+    "turn_id": "0026",
+    "speaker": "Host 2",
+    "text": "And I am Anitha. Thanks for tuning in, everyone!"
+  }
+]

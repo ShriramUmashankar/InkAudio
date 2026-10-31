@@ -3,7 +3,6 @@ Audio/*.wav
 Audio/final_podcast.mp3
 Content/*.md
 Content/*.pdf
-Content/script.json
 models/Qwen3*
 models/faster*
 __pycache__/
@@ -17,8 +16,9 @@ rough.txt
 .api_tmp/
 docs/
 tests/
-Content/script_english.json
-Content/script_metadata.json
+# Content/script.json
+# Content/script_english.json
+# Content/script_metadata.json
 .playwright-mcp/
 .aws/
 
